@@ -3,39 +3,20 @@ import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../../store/slices/authSlice'
 import { toast } from 'react-toastify'
 import { useEffect, useState } from 'react'
+import api from '../../store/api/baseApi'
 
-const adminNavSections = [
-  {
-    label: 'Dashboard',
-    items: [
-      { path: '/admin', label: 'Overview', icon: 'fas fa-chart-pie', exact: true },
-    ]
-  },
-  {
-    label: 'Store Management',
-    items: [
-      { path: '/admin/vendors', label: 'Vendors', icon: 'fas fa-store' },
-      { path: '/admin/products', label: 'Products', icon: 'fas fa-box-open' },
-      { path: '/admin/categories', label: 'Categories', icon: 'fas fa-th-large' },
-      { path: '/admin/orders', label: 'Orders', icon: 'fas fa-shopping-bag' },
-      { path: '/admin/customers', label: 'Customers', icon: 'fas fa-users' },
-    ]
-  },
-  {
-    label: 'Finance',
-    items: [
-      { path: '/admin/payouts', label: 'Payouts', icon: 'fas fa-credit-card' },
-      { path: '/admin/refunds', label: 'Refunds', icon: 'fas fa-undo-alt' },
-      { path: '/admin/coupons', label: 'Coupons', icon: 'fas fa-tag' },
-      { path: '/admin/commission', label: 'Commission', icon: 'fas fa-percent' },
-    ]
-  },
-  {
-    label: 'Feedback',
-    items: [
-      { path: '/admin/reviews', label: 'Reviews', icon: 'fas fa-star' },
-    ]
-  }
+const adminNavItems = [
+  { path: '/admin', label: 'Dashboard', icon: 'fas fa-chart-pie', exact: true },
+  { path: '/admin/vendors', label: 'Vendors', icon: 'fas fa-store' },
+  { path: '/admin/products', label: 'Products', icon: 'fas fa-box-open' },
+  { path: '/admin/categories', label: 'Categories', icon: 'fas fa-th-large' },
+  { path: '/admin/orders', label: 'Orders', icon: 'fas fa-shopping-bag' },
+  { path: '/admin/customers', label: 'Customers', icon: 'fas fa-users' },
+  { path: '/admin/payouts', label: 'Payouts', icon: 'fas fa-credit-card' },
+  { path: '/admin/refunds', label: 'Refunds', icon: 'fas fa-undo-alt' },
+  { path: '/admin/coupons', label: 'Coupons', icon: 'fas fa-tag' },
+  { path: '/admin/commission', label: 'Commission', icon: 'fas fa-percent' },
+  { path: '/admin/reviews', label: 'Reviews', icon: 'fas fa-star' },
 ]
 
 export default function AdminLayout({ children }) {
@@ -43,9 +24,11 @@ export default function AdminLayout({ children }) {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isDark, setIsDark] = useState(localStorage.getItem('phoenixTheme') === 'dark')
   const [profileDropdown, setProfileDropdown] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     const currentTheme = localStorage.getItem('phoenixTheme')
@@ -53,6 +36,25 @@ export default function AdminLayout({ children }) {
       document.documentElement.setAttribute('data-bs-theme', 'dark')
       setIsDark(true)
     }
+  }, [])
+
+  // Fetch pending vendor notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get('/vendor/pending')
+        const pending = res.data?.data || []
+        setNotifications(pending.map(v => ({
+          id: v._id,
+          message: `New vendor application: ${v.businessName}`,
+          time: new Date(v.createdAt).toLocaleDateString(),
+          type: 'vendor'
+        })))
+      } catch (e) {}
+    }
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 60000)
+    return () => clearInterval(interval)
   }, [])
 
   const handleThemeToggle = () => {
@@ -72,10 +74,13 @@ export default function AdminLayout({ children }) {
       if (profileDropdown && !e.target.closest('.admin-profile-dropdown')) {
         setProfileDropdown(false)
       }
+      if (showNotifications && !e.target.closest('.admin-notif-dropdown')) {
+        setShowNotifications(false)
+      }
     }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
-  }, [profileDropdown])
+  }, [profileDropdown, showNotifications])
 
   const isActive = (item) => {
     if (item.exact) return location.pathname === item.path
@@ -85,112 +90,93 @@ export default function AdminLayout({ children }) {
   const avatarSrc = user?.avatar || '/assets/img/team/avatar.webp'
 
   return (
-    <div className="d-flex" style={{ minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside
-        className="d-flex flex-column bg-body-emphasis border-end border-translucent"
-        style={{
-          width: sidebarCollapsed ? 72 : 260,
-          minHeight: '100vh',
-          position: 'sticky',
-          top: 0,
-          transition: 'width 0.2s ease',
-          zIndex: 1020,
-          overflow: 'hidden',
-        }}
-      >
-        {/* Logo */}
-        <div className="d-flex align-items-center px-3 border-bottom border-translucent" style={{ height: 64 }}>
-          <Link to="/admin" className="d-flex align-items-center text-decoration-none flex-nowrap overflow-hidden">
-            <img src="/assets/img/icons/logo.png" alt="ShopZone" width="27" style={{ minWidth: 27 }} />
-            {!sidebarCollapsed && (
-              <div className="ms-2 d-flex align-items-baseline flex-nowrap">
-                <span className="fw-bolder text-body-emphasis fs-7 text-nowrap">ShopZone</span>
-                <span className="badge badge-phoenix badge-phoenix-danger ms-2 fs-10">Admin</span>
-              </div>
-            )}
+    <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
+      {/* Top Navbar */}
+      <nav className="navbar navbar-expand-lg bg-body-emphasis border-bottom border-translucent px-3 px-lg-4" style={{ position: 'sticky', top: 0, zIndex: 1030 }}>
+        <div className="container-fluid">
+          {/* Logo */}
+          <Link to="/admin" className="navbar-brand d-flex align-items-center text-decoration-none">
+            <img src="/assets/img/icons/logo.png" alt="ShopZone" width="27" />
+            <span className="fw-bolder text-body-emphasis fs-7 ms-2">ShopZone</span>
+            <span className="badge badge-phoenix badge-phoenix-danger ms-2 fs-10">Admin</span>
           </Link>
-        </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-auto py-3 scrollbar">
-          {adminNavSections.map((section, si) => (
-            <div key={si} className="mb-3">
-              {!sidebarCollapsed && (
-                <p className="text-body-quaternary text-uppercase fw-bolder ls-2 fs-11 px-3 mb-2">{section.label}</p>
-              )}
-              {si > 0 && <hr className="mx-3 my-0 mb-2 border-translucent" />}
-              <ul className="nav flex-column gap-1 px-2">
-                {section.items.map((item) => (
-                  <li className="nav-item" key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-3 ${
-                        isActive(item)
-                          ? 'bg-primary bg-opacity-10 text-primary fw-semibold'
-                          : 'text-body-tertiary'
-                      }`}
-                      style={{ transition: 'all 0.15s ease' }}
-                      title={sidebarCollapsed ? item.label : undefined}
-                    >
-                      <span className={`${item.icon} fs-9`} style={{ width: 20, textAlign: 'center' }}></span>
-                      {!sidebarCollapsed && <span className="nav-link-text fs-9">{item.label}</span>}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+          {/* Hamburger for mobile */}
+          <button
+            className="navbar-toggler border-0 shadow-none"
+            type="button"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle navigation"
+          >
+            <span className="fas fa-bars text-body-emphasis"></span>
+          </button>
 
-        {/* Sidebar Footer */}
-        {!sidebarCollapsed && (
-          <div className="px-3 py-3 border-top border-translucent">
-            <div className="d-flex align-items-center">
-              <div className="avatar avatar-s">
-                <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} />
-              </div>
-              <div className="ms-2 flex-1 overflow-hidden">
-                <h6 className="mb-0 text-body-emphasis fs-10 text-truncate">{user?.name || 'Admin'}</h6>
-                <p className="mb-0 text-body-quaternary fs-11 text-truncate">{user?.email || 'admin@shopzone.com'}</p>
-              </div>
-              <button className="btn btn-sm btn-phoenix-secondary p-1 ms-auto" onClick={handleLogout} title="Logout">
-                <span className="fas fa-sign-out-alt fs-9"></span>
-              </button>
-            </div>
-          </div>
-        )}
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 d-flex flex-column" style={{ minWidth: 0 }}>
-        {/* Top Navbar */}
-        <nav className="navbar navbar-expand bg-body-emphasis border-bottom border-translucent px-4" style={{ height: 64, position: 'sticky', top: 0, zIndex: 1010 }}>
-          <div className="d-flex align-items-center w-100">
-            {/* Hamburger */}
-            <button className="btn btn-sm btn-phoenix-secondary me-3" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
-              <span className="fas fa-bars"></span>
-            </button>
-
-            {/* Search */}
-            <div className="search-box d-none d-md-block" style={{ maxWidth: 300, flex: 1 }}>
-              <form className="position-relative">
-                <input className="form-control form-control-sm search-input bg-body-highlight border-translucent" type="search" placeholder="Search..." aria-label="Search" />
-                <span className="fas fa-search search-box-icon"></span>
-              </form>
-            </div>
+          {/* Collapsible nav */}
+          <div className={`collapse navbar-collapse ${mobileOpen ? 'show' : ''}`}>
+            {/* Nav Items */}
+            <ul className="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+              {adminNavItems.map((item) => (
+                <li className="nav-item" key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={`nav-link d-flex align-items-center gap-1 px-2 py-2 rounded-3 fs-9 ${
+                      isActive(item) ? 'text-primary fw-semibold' : 'text-body-tertiary'
+                    }`}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className={`${item.icon} fs-10`}></span>
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
 
             {/* Right Actions */}
-            <div className="ms-auto d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2">
               {/* Theme Toggle */}
               <button className="btn btn-sm btn-phoenix-secondary" onClick={handleThemeToggle} title="Toggle theme">
                 <span className={`fas fa-${isDark ? 'sun' : 'moon'}`}></span>
               </button>
 
               {/* Notifications */}
-              <button className="btn btn-sm btn-phoenix-secondary position-relative">
-                <span className="fas fa-bell"></span>
-              </button>
+              <div className="position-relative admin-notif-dropdown">
+                <button
+                  className="btn btn-sm btn-phoenix-secondary position-relative"
+                  onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications) }}
+                >
+                  <span className="fas fa-bell"></span>
+                  {notifications.length > 0 && (
+                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem' }}>
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+                {showNotifications && (
+                  <div className="dropdown-menu dropdown-menu-end show shadow-lg border border-translucent py-0" style={{ position: 'absolute', right: 0, top: 40, minWidth: 300 }}>
+                    <div className="px-3 py-2 border-bottom border-translucent bg-body-highlight">
+                      <h6 className="mb-0 fs-9">Notifications</h6>
+                    </div>
+                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                      {notifications.length === 0 ? (
+                        <div className="text-center text-muted py-4 fs-9">No new notifications</div>
+                      ) : notifications.map(n => (
+                        <Link
+                          key={n.id}
+                          to={`/admin/vendors/${n.id}`}
+                          className="dropdown-item py-2 fs-9 d-flex align-items-start gap-2"
+                          onClick={() => setShowNotifications(false)}
+                        >
+                          <span className="fas fa-store text-warning mt-1"></span>
+                          <div>
+                            <p className="mb-0 text-body-emphasis">{n.message}</p>
+                            <small className="text-body-quaternary">{n.time}</small>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Visit Store */}
               <Link to="/" className="btn btn-sm btn-phoenix-primary d-none d-lg-inline-flex align-items-center gap-1">
@@ -224,9 +210,6 @@ export default function AdminLayout({ children }) {
                         </div>
                       </div>
                     </div>
-                    <Link className="dropdown-item py-2 fs-9" to="/profile" onClick={() => setProfileDropdown(false)}>
-                      <span className="fas fa-user me-2 text-body-quaternary"></span>My Profile
-                    </Link>
                     <Link className="dropdown-item py-2 fs-9" to="/admin" onClick={() => setProfileDropdown(false)}>
                       <span className="fas fa-chart-pie me-2 text-body-quaternary"></span>Dashboard
                     </Link>
@@ -242,21 +225,23 @@ export default function AdminLayout({ children }) {
               </div>
             </div>
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        {/* Page Content */}
-        <div className="flex-1 p-4 bg-body" style={{ overflow: 'auto' }}>
+      {/* Page Content */}
+      <div className="flex-1 bg-body">
+        <div className="container-fluid p-4">
           {children || <Outlet />}
         </div>
-
-        {/* Footer */}
-        <footer className="border-top border-translucent py-3 px-4">
-          <div className="d-flex justify-content-between align-items-center">
-            <p className="mb-0 text-body-tertiary fs-10">Thank you for creating with ShopZone <span className="mx-1">|</span> 2026 Â© <Link to="/">ShopZone</Link></p>
-            <p className="mb-0 text-body-quaternary fs-10">v1.0.0</p>
-          </div>
-        </footer>
       </div>
+
+      {/* Footer */}
+      <footer className="border-top border-translucent py-3 px-4">
+        <div className="d-flex justify-content-between align-items-center">
+          <p className="mb-0 text-body-tertiary fs-10">Thank you for creating with ShopZone <span className="mx-1">|</span> 2026 © <Link to="/">ShopZone</Link></p>
+          <p className="mb-0 text-body-quaternary fs-10">v1.0.0</p>
+        </div>
+      </footer>
     </div>
   )
 }

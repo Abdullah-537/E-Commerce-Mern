@@ -12,6 +12,11 @@ const productSchema = new mongoose.Schema({
   images: { type: [String], default: [] },
   stock: { type: Number, default: 0 },
   hasVariants: { type: Boolean, default: false },
+  variants: [{
+    name: { type: String },      // e.g. "Color", "Size"
+    value: { type: String },     // e.g. "Blue", "Large"
+    image: { type: String },     // optional image for color swatches
+  }],
   rating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
   isFeatured: { type: Boolean, default: false },

@@ -91,17 +91,17 @@ function App() {
 
       {/* Customer Routes */}
       <Route path="/cart" element={
-        <ProtectedRoute allowedRoles={['customer', 'vendor', 'admin']}>
+        <ProtectedRoute allowedRoles={['customer']}>
           <CustomerLayout><Cart /></CustomerLayout>
         </ProtectedRoute>
       } />
       <Route path="/checkout" element={
-        <ProtectedRoute allowedRoles={['customer', 'vendor', 'admin']}>
+        <ProtectedRoute allowedRoles={['customer']}>
           <CustomerLayout><Checkout /></CustomerLayout>
         </ProtectedRoute>
       } />
       <Route path="/confirm-order" element={
-        <ProtectedRoute allowedRoles={['customer', 'vendor', 'admin']}>
+        <ProtectedRoute allowedRoles={['customer']}>
           <CustomerLayout><OTPConfirm /></CustomerLayout>
         </ProtectedRoute>
       } />
@@ -111,12 +111,12 @@ function App() {
         </ProtectedRoute>
       } />
       <Route path="/wishlist" element={
-        <ProtectedRoute allowedRoles={['customer', 'vendor', 'admin']}>
+        <ProtectedRoute allowedRoles={['customer']}>
           <CustomerLayout><Wishlist /></CustomerLayout>
         </ProtectedRoute>
       } />
       <Route path="/orders" element={
-        <ProtectedRoute allowedRoles={['customer', 'vendor', 'admin']}>
+        <ProtectedRoute allowedRoles={['customer']}>
           <CustomerLayout><CustomerOrders /></CustomerLayout>
         </ProtectedRoute>
       } />

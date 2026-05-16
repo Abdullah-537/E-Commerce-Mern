@@ -120,12 +120,14 @@ export default function CustomerLayout({ children }) {
                         <label className="mb-0 theme-control-toggle-label theme-control-toggle-dark" htmlFor="themeControlToggle" data-bs-toggle="tooltip" data-bs-placement="left" title="Switch theme" style={{height:'32px',width:'32px'}}><span className="icon" data-feather="sun"></span></label>
                       </div>
                     </li>
+                    {(!user || (user.role !== 'admin' && user.role !== 'vendor')) && (
                     <li className="nav-item feather-icon-wait" style={{height: '40px'}}>
                       <a className={`nav-link px-2 icon-indicator ${totalItems > 0 ? 'icon-indicator-primary' : ''}`} href="#" onClick={handleCartClick} role="button">
                         <span className="text-body-tertiary" data-feather="shopping-cart" style={{height:'20px',width:'20px'}}></span>
                         {totalItems > 0 && <span className="icon-indicator-number">{totalItems}</span>}
                       </a>
                     </li>
+                    )}
                     <li className="nav-item dropdown feather-icon-wait" style={{height: '40px'}}>
                       <a className="nav-link px-2 icon-indicator icon-indicator-sm icon-indicator-danger"
                         id="navbarTopDropdownNotification" href="#" role="button" data-bs-toggle="dropdown"
@@ -199,7 +201,9 @@ export default function CustomerLayout({ children }) {
                                     <li className="nav-item"><Link className="nav-link px-3 d-block" to="/admin" onClick={() => setDropdownOpen(false)}> <span className="me-2 text-body align-bottom" data-feather="settings"></span><span>Admin Dashboard</span></Link></li>
                                   )}
                                   <li className="nav-item"><Link className="nav-link px-3 d-block" to="/profile" onClick={() => setDropdownOpen(false)}> <span className="me-2 text-body align-bottom" data-feather="user"></span><span>Profile</span></Link></li>
-                                  <li className="nav-item"><Link className="nav-link px-3 d-block" to="/wishlist" onClick={() => setDropdownOpen(false)}><span className="me-2 text-body align-bottom" data-feather="heart"></span>Wishlist</Link></li>
+                                  {(!user || user.role === 'customer') && (
+                                    <li className="nav-item"><Link className="nav-link px-3 d-block" to="/wishlist" onClick={() => setDropdownOpen(false)}><span className="me-2 text-body align-bottom" data-feather="heart"></span>Wishlist</Link></li>
+                                  )}
                                 </ul>
                               </div>
                               <div className="card-footer p-0 border-top border-translucent">
@@ -277,15 +281,25 @@ export default function CustomerLayout({ children }) {
           </div>
           <ul className="navbar-nav justify-content-end align-items-center flex-nowrap" style={{overflow: 'hidden', flexWrap: 'nowrap'}}>
             <li className="nav-item" data-nav-item="data-nav-item"><Link className={`nav-link ps-0 ${location.pathname === '/' ? 'active' : ''}`} to="/">Home</Link></li>
-            <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/favourite-stores">My Favourite Stores</Link></li>
+            {(!user || user.role === 'customer') && (
+              <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/favourite-stores">My Favourite Stores</Link></li>
+            )}
             <li className="nav-item" data-nav-item="data-nav-item"><Link className={`nav-link ${location.pathname === '/products' ? 'active' : ''}`} to="/products">Products</Link></li>
-            <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link" to="/wishlist">Wishlist</Link></li>
-            <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/shipping-info">Shipping Info</Link></li>
+            {(!user || user.role === 'customer') && (
+              <>
+                <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link" to="/wishlist">Wishlist</Link></li>
+                <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/shipping-info">Shipping Info</Link></li>
+              </>
+            )}
             {(!user || (user.role !== 'admin' && user.role !== 'vendor')) && (
               <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/vendor/register">Be a vendor</Link></li>
             )}
-            <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/orders">Track order</Link></li>
-            <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link pe-0" to="/checkout">Checkout</Link></li>
+            {(!user || user.role === 'customer') && (
+              <>
+                <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link text-nowrap" to="/orders">Track order</Link></li>
+                <li className="nav-item" data-nav-item="data-nav-item"><Link className="nav-link pe-0" to="/checkout">Checkout</Link></li>
+              </>
+            )}
           </ul>
         </div>
       </nav>
