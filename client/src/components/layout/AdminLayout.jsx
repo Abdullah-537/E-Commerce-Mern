@@ -4,6 +4,7 @@ import { logout } from '../../store/slices/authSlice'
 import { toast } from 'react-toastify'
 import { useEffect, useState } from 'react'
 import api from '../../store/api/baseApi'
+import NotificationDropdown from './NotificationDropdown'
 
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: 'fas fa-chart-pie', exact: true },
@@ -16,7 +17,7 @@ const adminNavItems = [
   { path: '/admin/refunds', label: 'Refunds', icon: 'fas fa-undo-alt' },
   { path: '/admin/coupons', label: 'Coupons', icon: 'fas fa-tag' },
   { path: '/admin/commission', label: 'Commission', icon: 'fas fa-percent' },
-  { path: '/admin/reviews', label: 'Reviews', icon: 'fas fa-star' },
+  { path: '/admin/complaints', label: 'Complaints', icon: 'fas fa-flag' },
 ]
 
 export default function AdminLayout({ children }) {
@@ -64,9 +65,15 @@ export default function AdminLayout({ children }) {
     localStorage.setItem('phoenixTheme', newTheme)
   }
 
-  const handleLogout = () => {
-    dispatch(logout())
-    navigate('/signout')
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch (error) {
+      console.warn('Backend logout failed');
+    } finally {
+      dispatch(logout())
+      navigate('/signout')
+    }
   }
 
   useEffect(() => {
@@ -138,45 +145,9 @@ export default function AdminLayout({ children }) {
                 <span className={`fas fa-${isDark ? 'sun' : 'moon'}`}></span>
               </button>
 
-              {/* Notifications */}
-              <div className="position-relative admin-notif-dropdown">
-                <button
-                  className="btn btn-sm btn-phoenix-secondary position-relative"
-                  onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications) }}
-                >
-                  <span className="fas fa-bell"></span>
-                  {notifications.length > 0 && (
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem' }}>
-                      {notifications.length}
-                    </span>
-                  )}
-                </button>
-                {showNotifications && (
-                  <div className="dropdown-menu dropdown-menu-end show shadow-lg border border-translucent py-0" style={{ position: 'absolute', right: 0, top: 40, minWidth: 300 }}>
-                    <div className="px-3 py-2 border-bottom border-translucent bg-body-highlight">
-                      <h6 className="mb-0 fs-9">Notifications</h6>
-                    </div>
-                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                      {notifications.length === 0 ? (
-                        <div className="text-center text-muted py-4 fs-9">No new notifications</div>
-                      ) : notifications.map(n => (
-                        <Link
-                          key={n.id}
-                          to={`/admin/vendors/${n.id}`}
-                          className="dropdown-item py-2 fs-9 d-flex align-items-start gap-2"
-                          onClick={() => setShowNotifications(false)}
-                        >
-                          <span className="fas fa-store text-warning mt-1"></span>
-                          <div>
-                            <p className="mb-0 text-body-emphasis">{n.message}</p>
-                            <small className="text-body-quaternary">{n.time}</small>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ul className="navbar-nav navbar-nav-icons flex-row">
+                <NotificationDropdown />
+              </ul>
 
               {/* Visit Store */}
               <Link to="/" className="btn btn-sm btn-phoenix-primary d-none d-lg-inline-flex align-items-center gap-1">
@@ -200,7 +171,7 @@ export default function AdminLayout({ children }) {
                   <span className="fas fa-chevron-down text-body-quaternary fs-11 ms-1 d-none d-md-block"></span>
                 </button>
                 {profileDropdown && (
-                  <div className="dropdown-menu dropdown-menu-end show shadow-lg border border-translucent py-2" style={{ position: 'absolute', right: 0, top: 44, minWidth: 220 }}>
+                  <div className="dropdown-menu dropdown-menu-end show shadow-lg border border-translucent py-2" style={{ position: 'absolute', right: '0', left: 'auto', top: 44, minWidth: 220, transform: 'translateX(-10px)' }}>
                     <div className="px-3 py-2 border-bottom border-translucent">
                       <div className="d-flex align-items-center gap-2">
                         <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />

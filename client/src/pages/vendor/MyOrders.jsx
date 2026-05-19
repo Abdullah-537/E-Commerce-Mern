@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
 
 export default function MyOrders() {
@@ -26,22 +27,40 @@ export default function MyOrders() {
         <div className="text-center py-5"><div className="spinner-border"></div></div>
       ) : (
         <div className="card border-0 shadow-sm">
-          <table className="table mb-0">
-            <thead>
-              <tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {orders.map(o => (
-                <tr key={o._id}>
-                  <td>{o._id}</td>
-                  <td>{o.customerId?.name}</td>
-                  <td>{o.items?.length} items</td>
-                  <td>PKR {o.totalAmount}</td>
-                  <td><span className={`badge ${getStatusBadge(o.status)}`}>{o.status}</span></td>
+          <div className="table-responsive">
+            <table className="table mb-0">
+              <thead>
+                <tr>
+                  <th className="ps-4">Order ID</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th className="text-end pe-4">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {orders.map(o => (
+                  <tr key={o._id}>
+                    <td className="ps-4">
+                      <Link to={`/vendor/orders/${o._id}`} className="fw-semibold text-decoration-none">
+                        #{o._id.slice(-6).toUpperCase()}
+                      </Link>
+                    </td>
+                    <td className="align-middle">{o.customerId?.name}</td>
+                    <td className="align-middle">{o.items?.length} items</td>
+                    <td className="align-middle">PKR {o.totalAmount}</td>
+                    <td className="align-middle"><span className={`badge ${getStatusBadge(o.status)}`}>{o.status}</span></td>
+                    <td className="text-end pe-4 align-middle">
+                      <Link to={`/vendor/orders/${o._id}`} className="btn btn-sm btn-phoenix-primary">
+                        View Details
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

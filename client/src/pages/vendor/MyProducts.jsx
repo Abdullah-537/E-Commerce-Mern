@@ -109,7 +109,9 @@ export default function MyProducts() {
                       </div>
                     </td>
                     <td>
-                      <h6 className="mb-0 text-body-emphasis fs-9">{p.name}</h6>
+                      <Link to={`/product/${p._id}`} className="text-decoration-none">
+                        <h6 className="mb-0 text-primary fs-9">{p.name}</h6>
+                      </Link>
                       {p.slug && <small className="text-body-quaternary">{p.slug}</small>}
                     </td>
                     <td className="text-body-tertiary">{p.categoryId?.name || '—'}</td>

@@ -22,9 +22,8 @@ export default function VendorRegister() {
     setLoading(true)
     try {
       const { data } = await api.post('/vendor/register', formData)
-      dispatch(setCredentials({ user: data.data.user, accessToken: data.data.accessToken }))
-      toast.success('Registration submitted! Pending approval.')
-      navigate('/vendor/login')
+      toast.success(data.message || 'Registration successful. Check email for OTP.')
+      navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed')
     } finally {

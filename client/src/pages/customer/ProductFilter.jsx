@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import api from '../../store/api/baseApi'
+import { toast } from 'react-toastify'
 
 export default function ProductFilter() {
   const [searchParams] = useSearchParams()
@@ -11,8 +13,8 @@ export default function ProductFilter() {
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
   const [error, setError] = useState(null)
   const fetchRef = useRef(0)
+  const { isAuthenticated, user } = useSelector(state => state.auth)
 
-  // Derive category from URL
   const currentCategory = searchParams.get('category') || ''
   const currentMinPrice = searchParams.get('minPrice') || ''
   const currentMaxPrice = searchParams.get('maxPrice') || ''
@@ -33,24 +35,17 @@ export default function ProductFilter() {
       .then(res => {
         if (fetchId !== fetchRef.current) return
         const data = res.data?.data
-        if (Array.isArray(data)) {
-          setProducts(data)
-        } else if (data?.products && Array.isArray(data.products)) {
-          setProducts(data.products)
-        } else {
-          setProducts([])
-        }
+        if (Array.isArray(data)) setProducts(data)
+        else if (data?.products && Array.isArray(data.products)) setProducts(data.products)
+        else setProducts([])
       })
       .catch(err => {
         if (fetchId !== fetchRef.current) return
-        console.error('Product fetch error:', err)
         setProducts([])
         setError('Failed to load products')
       })
       .finally(() => {
-        if (fetchId === fetchRef.current) {
-          setLoading(false)
-        }
+        if (fetchId === fetchRef.current) setLoading(false)
       })
   }, [currentCategory, currentMinPrice, currentMaxPrice, currentSearch])
 
@@ -59,14 +54,10 @@ export default function ProductFilter() {
   }, [])
 
   const renderStars = useCallback((rating) => {
-    const stars = []
     const full = Math.floor(rating || 0)
-    for (let i = 0; i < 5; i++) {
-      stars.push(
-        <span key={i} className={`fa fa-star ${i < full ? 'text-warning' : 'text-body-quaternary'}`} style={{ fontSize: '0.6rem' }}></span>
-      )
-    }
-    return stars
+    return Array.from({ length: 5 }, (_, i) => (
+      <span key={i} className={`fa fa-star ${i < full ? 'text-warning' : 'text-body-quaternary'}`} style={{ fontSize: '0.6rem' }}></span>
+    ))
   }, [])
 
   const selectCategory = (e, catId) => {
@@ -84,6 +75,37 @@ export default function ProductFilter() {
     navigate(`/products?${params.toString()}`, { replace: false })
   }
 
+  const [wishlistItems, setWishlistItems] = useState([])
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'customer') {
+      api.get('/wishlist').then(res => {
+        const items = res.data.data?.items?.map(i => i.productId?._id || i.productId) || []
+        setWishlistItems(items)
+      }).catch(() => {})
+    }
+  }, [isAuthenticated, user])
+
+  const handleAddToWishlist = async (e, productId) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isAuthenticated) return toast.info('Please login first')
+    const isWishlisted = wishlistItems.includes(productId)
+    try {
+      if (isWishlisted) {
+        await api.delete(`/wishlist/${productId}`)
+        setWishlistItems(prev => prev.filter(id => id !== productId))
+        toast.success('Removed from wishlist')
+      } else {
+        await api.post('/wishlist', { productId })
+        setWishlistItems(prev => [...prev, productId])
+        toast.success('Added to wishlist')
+      }
+    } catch {
+      toast.error('Failed to update wishlist')
+    }
+  }
+
   const getImgSrc = (p) => {
     try {
       if (Array.isArray(p.images) && p.images.length > 0) return p.images[0]
@@ -96,8 +118,8 @@ export default function ProductFilter() {
     try {
       const sale = Number(p.salePrice)
       const base = Number(p.price)
-      if (!isNaN(sale) && sale > 0 && sale < base) return { sale: sale, base: base, hasSale: true }
-      return { sale: base, base: base, hasSale: false }
+      if (!isNaN(sale) && sale > 0 && sale < base) return { sale, base, hasSale: true }
+      return { sale: base, base, hasSale: false }
     } catch { return { sale: 0, base: 0, hasSale: false } }
   }
 
@@ -111,8 +133,9 @@ export default function ProductFilter() {
           </ol>
         </nav>
         <h2 className="mb-5">Products</h2>
+
         <div className="row">
-          {/* Sidebar Filters */}
+          {/* ── Sidebar Filters ── */}
           <div className="col-12 col-lg-3 mb-4">
             <div className="card mb-3">
               <div className="card-body">
@@ -122,18 +145,23 @@ export default function ProductFilter() {
                     href="#"
                     className={`text-body-emphasis text-decoration-none bg-body-highlight-hover px-2 py-1 rounded-2 fs-9 ${!currentCategory ? 'fw-bold text-primary' : ''}`}
                     onClick={(e) => selectCategory(e, null)}
-                  >All Categories</a>
+                  >
+                    All Categories
+                  </a>
                   {categories.map(cat => (
                     <a
                       key={cat._id}
                       href="#"
                       className={`text-body-emphasis text-decoration-none bg-body-highlight-hover px-2 py-1 rounded-2 fs-9 ${currentCategory === cat._id ? 'fw-bold text-primary' : ''}`}
                       onClick={(e) => selectCategory(e, cat._id)}
-                    >{cat.name}</a>
+                    >
+                      {cat.name}
+                    </a>
                   ))}
                 </div>
               </div>
             </div>
+
             <div className="card">
               <div className="card-body">
                 <h6 className="text-body-highlight mb-3">Price Range</h6>
@@ -154,18 +182,19 @@ export default function ProductFilter() {
                     onChange={e => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
                   />
                 </div>
-                <button
-                  className="btn btn-phoenix-primary btn-sm w-100 mt-2"
-                  onClick={applyPriceFilter}
-                >Apply</button>
+                <button className="btn btn-phoenix-primary btn-sm w-100 mt-2" onClick={applyPriceFilter}>
+                  Apply
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Product Grid */}
+          {/* ── Product Grid ── */}
           <div className="col-12 col-lg-9">
             {loading ? (
-              <div className="text-center py-9"><div className="spinner-border text-primary" role="status"></div></div>
+              <div className="text-center py-9">
+                <div className="spinner-border text-primary" role="status"></div>
+              </div>
             ) : error ? (
               <div className="text-center py-9">
                 <span className="fas fa-exclamation-triangle fs-5 text-warning mb-4 d-block"></span>
@@ -178,32 +207,69 @@ export default function ProductFilter() {
                   const price = getPrice(p)
                   return (
                     <div className="col-6 col-md-4 col-xl-3" key={p._id}>
-                      <div className="position-relative text-decoration-none product-card h-100">
+                      <div className="position-relative text-decoration-none product-card h-100 border border-1 border-translucent rounded-3 p-3">
                         <div className="d-flex flex-column justify-content-between h-100">
                           <div>
-                            <div className="border border-1 border-translucent rounded-3 position-relative mb-3">
-                              <img className="img-fluid" src={getImgSrc(p)} alt={p.name || ''} />
+                            <div className="position-relative mb-3">
+                              {(!isAuthenticated || (user?.role !== 'vendor' && user?.role !== 'admin')) && (() => {
+                                const isWishlisted = wishlistItems.includes(p._id);
+                                return (
+                                  <button
+                                    className={`btn btn-wish z-2 ${isWishlisted ? 'btn-primary' : 'btn-wish-primary'}`}
+                                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                                    onClick={(e) => handleAddToWishlist(e, p._id)}
+                                    style={{ cursor: 'pointer', position: 'absolute', top: 0, right: 0 }}
+                                  >
+                                    <span className={`${isWishlisted ? 'fas text-white' : 'far'} fa-heart`}></span>
+                                  </button>
+                                );
+                              })()}
+                              <img
+                                className="img-fluid"
+                                src={getImgSrc(p)}
+                                alt={p.name || ''}
+                              />
                             </div>
                             <Link className="stretched-link" to={`/product/${p._id}`}>
                               <h6 className="mb-2 lh-sm line-clamp-3 product-name">{p.name}</h6>
                             </Link>
-                            {p.rating > 0 && (
-                              <p className="fs-9 mb-1">
-                                {renderStars(p.rating)}
-                                <span className="text-body-quaternary fw-semibold ms-1">({p.reviewCount || 0})</span>
-                              </p>
-                            )}
+                            <p className="fs-9 mb-2">
+                              {renderStars(p.rating || 0)}
+                              <span className="text-body-quaternary fw-semibold ms-1">
+                                ({p.reviewCount || 0} rated)
+                              </span>
+                            </p>
                           </div>
                           <div>
                             {p.vendorId?.businessName && (
-                              <p className="fs-9 text-body-tertiary fw-semibold lh-1 mb-1">{p.vendorId.businessName}</p>
+                              <Link
+                                className="fs-9 text-body-highlight fw-bold mb-2 d-block text-truncate text-decoration-none position-relative"
+                                to={`/store/${p.vendorId.slug || p.vendorId._id || p.vendorId}`}
+                                style={{ zIndex: 3 }}
+                              >
+                                {p.vendorId.businessName}
+                              </Link>
                             )}
                             <div className="d-flex align-items-center mb-1">
-                              {price.hasSale && (
-                                <p className="me-2 text-body text-decoration-line-through mb-0">PKR {price.base.toLocaleString()}</p>
+                              {price.hasSale ? (
+                                <>
+                                  <p className="me-2 text-body text-decoration-line-through mb-0 fs-9">
+                                    PKR {price.base?.toLocaleString()}
+                                  </p>
+                                  <h3 className="text-body-emphasis mb-0">PKR {price.sale?.toLocaleString()}</h3>
+                                </>
+                              ) : (
+                                <h3 className="text-body-emphasis mb-0">PKR {price.base?.toLocaleString()}</h3>
                               )}
-                              <h3 className="text-body-emphasis mb-0">PKR {(price.hasSale ? price.sale : price.base).toLocaleString()}</h3>
                             </div>
+                            {price.hasSale && (
+                              <p className="text-warning fw-bolder fs-9 mb-1">
+                                {Math.round((1 - price.sale / price.base) * 100)}% off
+                              </p>
+                            )}
+                            <p className="text-body-tertiary fw-semibold fs-9 lh-1 mb-2 mt-1">
+                              {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}
+                            </p>
                           </div>
                         </div>
                       </div>

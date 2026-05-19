@@ -12,6 +12,40 @@ exports.getProfile = async (req, res, next) => {
   }
 };
 
+exports.getUserById = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select('-passwordHash');
+    if (!user) return next(ApiError.notFound('User not found'));
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.banUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return next(ApiError.notFound('User not found'));
+    user.isActive = req.body.isActive !== undefined ? req.body.isActive : !user.isActive;
+    await user.save();
+    res.status(200).json({ success: true, data: user, message: 'User ban status updated' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.verifyUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return next(ApiError.notFound('User not found'));
+    user.isVerified = req.body.isVerified !== undefined ? req.body.isVerified : !user.isVerified;
+    await user.save();
+    res.status(200).json({ success: true, data: user, message: 'User verification status updated' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.updateProfile = async (req, res, next) => {
   try {
     const { name, phone, avatar } = req.body;

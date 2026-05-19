@@ -468,3 +468,20 @@ h4.mb-4, h3.mb-4, h2.mb-4 {
   background: transparent;
   border-left: none;
 }
+
+/* ==============================
+   Text Truncation Utilities
+   ============================== */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}

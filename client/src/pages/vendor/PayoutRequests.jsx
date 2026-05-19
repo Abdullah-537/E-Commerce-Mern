@@ -62,7 +62,7 @@ export default function PayoutRequests() {
         <div className="card border-0 shadow-sm">
           <table className="table mb-0">
             <thead>
-              <tr><th>Amount</th><th>Status</th><th>Requested</th><th>Processed</th></tr>
+              <tr><th>Amount</th><th>Status</th><th>Requested</th><th>Processed</th><th className="text-end pe-3">Actions</th></tr>
             </thead>
             <tbody>
               {payouts.map(p => (
@@ -71,6 +71,13 @@ export default function PayoutRequests() {
                   <td><span className={`badge ${getBadgeClass(p.status)}`}>{p.status}</span></td>
                   <td>{new Date(p.requestedAt).toLocaleDateString()}</td>
                   <td>{p.processedAt ? new Date(p.processedAt).toLocaleDateString() : '-'}</td>
+                  <td className="text-end pe-3">
+                    {p.status === 'paid' && (
+                      <button className="btn btn-phoenix-secondary btn-sm px-2 py-0 fs-10" onClick={() => toast.info('Invoice coming soon')}>
+                        <span className="fas fa-file-invoice me-1"></span>Invoice
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

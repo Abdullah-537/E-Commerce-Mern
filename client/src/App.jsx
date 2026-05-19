@@ -15,6 +15,7 @@ import VendorRegister from './pages/auth/VendorRegister'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import SignOut from './pages/auth/SignOut'
+import VerifyOTP from './pages/auth/VerifyOTP'
 
 // Customer Pages
 import Homepage from './pages/customer/Homepage'
@@ -47,6 +48,7 @@ import Reviews from './pages/admin/Reviews'
 import CommissionSettings from './pages/admin/CommissionSettings'
 import CustomerDetail from './pages/admin/CustomerDetail'
 import AdminOrderDetail from './pages/admin/AdminOrderDetail'
+import Complaints from './pages/admin/Complaints'
 
 // Vendor Pages
 import VendorDashboard from './pages/vendor/VendorDashboard'
@@ -83,8 +85,9 @@ function App() {
       {/* Auth Routes */}
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+      <Route path="/verify-otp" element={!user ? <VerifyOTP /> : <Navigate to="/" />} />
       <Route path="/vendor/login" element={!user ? <VendorLogin /> : <Navigate to="/vendor" />} />
-      <Route path="/vendor/register" element={!user ? <VendorRegister /> : <Navigate to="/vendor" />} />
+      <Route path="/vendor/register" element={user?.role === 'vendor' ? <Navigate to="/vendor" /> : <VendorRegister />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/signout" element={<SignOut />} />
@@ -247,6 +250,11 @@ function App() {
       <Route path="/admin/payouts" element={
         <AdminRoute>
           <AdminLayout><Payouts /></AdminLayout>
+        </AdminRoute>
+      } />
+      <Route path="/admin/complaints" element={
+        <AdminRoute>
+          <AdminLayout><Complaints /></AdminLayout>
         </AdminRoute>
       } />
       <Route path="/admin/categories" element={

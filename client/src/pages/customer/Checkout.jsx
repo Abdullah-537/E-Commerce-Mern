@@ -4,6 +4,7 @@ import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
 import { useSelector, useDispatch } from 'react-redux'
 import { setCart } from '../../store/slices/cartSlice'
+import { getProvinces, getCitiesByProvince } from '../../utils/pakistanCities'
 
 export default function Checkout() {
   const { items, totalPrice } = useSelector(state => state.cart)
@@ -191,14 +192,20 @@ export default function Checkout() {
                           onChange={e => setNewAddress({ ...newAddress, street: e.target.value })} required />
                       </div>
                       <div className="col-md-4">
-                        <label className="form-label fs-8 text-body-highlight">City</label>
-                        <input className="form-control" placeholder="City" value={newAddress.city}
-                          onChange={e => setNewAddress({ ...newAddress, city: e.target.value })} required />
+                        <label className="form-label fs-8 text-body-highlight">Province</label>
+                        <select className="form-select" value={newAddress.province}
+                          onChange={e => setNewAddress({ ...newAddress, province: e.target.value, city: '' })} required>
+                          <option value="">Select Province</option>
+                          {getProvinces().map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
                       </div>
                       <div className="col-md-4">
-                        <label className="form-label fs-8 text-body-highlight">Province</label>
-                        <input className="form-control" placeholder="Province" value={newAddress.province}
-                          onChange={e => setNewAddress({ ...newAddress, province: e.target.value })} required />
+                        <label className="form-label fs-8 text-body-highlight">City</label>
+                        <select className="form-select" value={newAddress.city}
+                          onChange={e => setNewAddress({ ...newAddress, city: e.target.value })} required disabled={!newAddress.province}>
+                          <option value="">Select City</option>
+                          {getCitiesByProvince(newAddress.province).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                       </div>
                       <div className="col-md-4">
                         <label className="form-label fs-8 text-body-highlight">Postal Code</label>

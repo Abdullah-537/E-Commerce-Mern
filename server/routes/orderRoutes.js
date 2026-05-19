@@ -26,10 +26,10 @@ router.get('/', protect, roleMiddleware('admin'), orderController.getAllOrders);
 // Vendor: vendor orders
 router.get('/vendor/orders', protect, roleMiddleware('vendor'), orderController.getVendorOrders);
 
-// Admin: update order status
-router.put('/:id/status', protect, roleMiddleware('admin'), orderController.updateStatus);
+// Admin/Vendor: update order status
+router.put('/:id/status', protect, roleMiddleware('admin', 'vendor'), orderController.updateStatus);
 
-// Vendor: update fulfillment
-router.put('/:id/fulfillment', protect, roleMiddleware('vendor'), orderController.updateFulfillment);
+// Admin: update fulfillment
+router.put('/:id/fulfillment', protect, roleMiddleware('admin'), orderController.updateFulfillment);
 
 module.exports = router;

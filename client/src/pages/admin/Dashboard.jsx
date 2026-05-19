@@ -212,7 +212,7 @@ export default function Dashboard() {
                       <td className="align-middle ps-3">
                         <Link to={`/admin/orders/${o._id}`} className="fw-semibold text-primary text-decoration-none">#{o._id?.slice(-6).toUpperCase()}</Link>
                       </td>
-                      <td className="align-middle text-body-emphasis">{o.userId?.name || 'Unknown'}</td>
+                      <td className="align-middle text-body-emphasis">{o.customerId?.name || 'Unknown'}</td>
                       <td className="align-middle text-body-tertiary fs-10">{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
                       <td className="align-middle text-end fw-bold text-body-emphasis">PKR {o.totalAmount?.toLocaleString()}</td>
                       <td className="align-middle text-center">

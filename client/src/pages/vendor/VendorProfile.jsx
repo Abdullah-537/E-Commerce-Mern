@@ -42,7 +42,19 @@ export default function VendorProfile() {
     finally { setSaving(false) }
   }
 
-  const avatarSrc = user?.avatar || vendor?.logo || '/assets/img/team/avatar.webp'
+  const avatarSrc = user?.avatar || vendor?.logo
+  const getInitial = () => (vendor?.businessName || user?.name || 'V').charAt(0).toUpperCase()
+
+  const renderAvatar = (size = 100) => {
+    if (avatarSrc) {
+      return <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: size, height: size, objectFit: 'cover' }} />
+    }
+    return (
+      <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+        {getInitial()}
+      </div>
+    )
+  }
 
   if (loading) return (
     <div className="text-center py-9">
@@ -59,7 +71,7 @@ export default function VendorProfile() {
             <div className="col-auto">
               <div className="position-relative" style={{ cursor: 'pointer' }} onClick={() => document.getElementById('vendor-avatar-upload').click()}>
                 <div className="avatar avatar-5xl">
-                  <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 100, height: 100, objectFit: 'cover' }} />
+                  {renderAvatar(100)}
                 </div>
                 <div className="position-absolute bottom-0 end-0 bg-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 28, height: 28 }}>
                   <span className="fas fa-camera text-white fs-10"></span>

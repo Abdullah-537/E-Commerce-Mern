@@ -13,13 +13,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&amp;display=swap" rel="stylesheet">
     <link href="/vendors/simplebar/simplebar.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.8/css/line.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="/assets/css/theme-rtl.min.css" type="text/css" rel="stylesheet" id="style-rtl" disabled="true">
     <link href="/assets/css/theme.min.css" type="text/css" rel="stylesheet" id="style-default">
     <link href="/assets/css/user-rtl.min.css" type="text/css" rel="stylesheet" id="user-style-rtl" disabled="true">
     <link href="/assets/css/user.min.css" type="text/css" rel="stylesheet" id="user-style-default">
     <link href="/vendors/swiper/swiper-bundle.min.css" rel="stylesheet">
+    <link href="/assets/css/shopzone-custom.css" rel="stylesheet">
     
     <script>
+      // Force horizontal nav - no sidebar in ShopZone
+      localStorage.setItem('phoenixNavbarPosition', 'horizontal');
       var phoenixIsRTL = window.config?.config?.phoenixIsRTL;
       if (phoenixIsRTL) {
         var linkDefault = document.getElementById('style-default');
@@ -44,8 +48,7 @@
     <script src="/vendors/bootstrap/bootstrap.min.js"></script>
     <script src="/vendors/anchorjs/anchor.min.js"></script>
     <script src="/vendors/is/is.min.js"></script>
-    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest', observeMutations: true, mutateApproach: 'sync' };</script>
-    <script src="/vendors/fontawesome/all.min.js"></script>
+
     <script src="/vendors/lodash/lodash.min.js"></script>
     <script src="/vendors/list.js/list.min.js"></script>
     <script src="/vendors/feather-icons/feather.min.js"></script>

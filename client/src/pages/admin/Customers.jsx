@@ -69,7 +69,8 @@ export default function Customers() {
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Phone</th>
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Role</th>
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Verified</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Joined</th>
+                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end">Joined</th>
+                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -101,13 +102,37 @@ export default function Customers() {
                       </td>
                       <td className="align-middle text-center">
                         {c.isVerified ? (
-                          <span className="fas fa-check-circle text-success"></span>
+                          <span className="fas fa-check-circle text-success" title="Verified"></span>
                         ) : (
-                          <span className="fas fa-times-circle text-body-quaternary"></span>
+                          <span className="fas fa-times-circle text-body-quaternary" title="Unverified"></span>
+                        )}
+                        {!c.isActive && (
+                          <span className="badge badge-phoenix badge-phoenix-danger ms-1 fs-11">BANNED</span>
                         )}
                       </td>
-                      <td className="align-middle text-end text-body-tertiary pe-3 fs-10">
+                      <td className="align-middle text-end text-body-tertiary fs-10">
                         {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                      </td>
+                      <td className="align-middle text-end pe-3">
+                        <div className="btn-group">
+                          <Link to={`/admin/customers/${c._id}`} className="btn btn-sm btn-phoenix-secondary" title="View/Update">
+                            <span className="fas fa-eye"></span>
+                          </Link>
+                          <button 
+                            className={`btn btn-sm ${c.isActive ? 'btn-phoenix-danger' : 'btn-phoenix-success'}`}
+                            onClick={async () => {
+                              try {
+                                await api.put(`/users/${c._id}/ban`, { isActive: !c.isActive })
+                                setCustomers(customers.map(x => x._id === c._id ? { ...x, isActive: !c.isActive } : x))
+                              } catch (e) {
+                                console.error(e)
+                              }
+                            }}
+                            title={c.isActive ? "Deactivate" : "Activate"}
+                          >
+                            <span className={`fas fa-${c.isActive ? 'ban' : 'check'}`}></span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

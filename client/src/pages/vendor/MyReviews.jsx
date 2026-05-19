@@ -51,11 +51,20 @@ export default function MyReviews() {
               <tbody>
                 {reviews.length === 0 ? <tr><td colSpan={5} className="text-center text-muted py-4">No reviews</td></tr> : reviews.map(r => (
                   <tr key={r._id}>
-                    <td><a href={`/products/${r.productId?._id}`} className="text-decoration-none">{r.productId?.name || 'N/A'}</a></td>
-                    <td>{r.customerId?.name || 'N/A'}</td>
-                    <td><span className="text-warning">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span></td>
-                    <td><span className="text-truncate d-inline-block" style={{ maxWidth: 250 }}>{r.comment || 'No comment'}</span></td>
-                    <td>{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <a href={`/product/${r.productId?._id}`} className="text-decoration-none d-flex align-items-center gap-2">
+                        <img 
+                          src={r.productId?.images?.[0] || 'https://via.placeholder.com/40'} 
+                          alt="product" 
+                          style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} 
+                        />
+                        <span>{r.productId?.name || 'N/A'}</span>
+                      </a>
+                    </td>
+                    <td className="align-middle">{r.customerId?.name || 'N/A'}</td>
+                    <td className="align-middle"><span className="text-warning fs-9">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span></td>
+                    <td className="align-middle"><span className="text-truncate d-inline-block text-body-tertiary" style={{ maxWidth: 250 }}>{r.comment || 'No comment'}</span></td>
+                    <td className="align-middle text-body-tertiary">{new Date(r.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

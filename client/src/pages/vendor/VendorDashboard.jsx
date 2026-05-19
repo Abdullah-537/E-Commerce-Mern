@@ -6,7 +6,7 @@ import api from '../../store/api/baseApi'
 
 export default function VendorDashboard() {
   const { user } = useSelector(state => state.auth)
-  const [stats, setStats] = useState({ products: 0, orders: 0, earnings: 0, balance: 0, pendingOrders: 0, totalReviews: 0 })
+  const [stats, setStats] = useState({ products: 0, orders: 0, earnings: 0, balance: 0, pendingOrders: 0, totalReviews: 0, allOrders: [] })
   const [recentOrders, setRecentOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -26,6 +26,7 @@ export default function VendorDashboard() {
         balance: v.availableBalance || 0,
         pendingOrders: orders.filter(o => o.status === 'pending' || o.status === 'processing').length,
         totalReviews: 0,
+        allOrders: orders
       })
       setRecentOrders(orders.slice(0, 5))
     }).catch(() => {}).finally(() => setLoading(false))
@@ -38,16 +39,31 @@ export default function VendorDashboard() {
     { label: 'Available Balance', value: `PKR ${stats.balance.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'info', link: '/vendor/payouts' },
   ]
 
+  const last7Days = [...Array(7)].map((_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return d.toISOString().split('T')[0]
+  })
+  
+  const chartLabels = last7Days.map(date => {
+    const [y, m, d] = date.split('-')
+    return `${d}/${m}`
+  })
+  
+  const chartValues = last7Days.map(date => {
+    return stats.allOrders.filter(o => o.createdAt?.startsWith(date)).length || 0
+  })
+
   const chartOption = {
     tooltip: { trigger: 'axis' },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], boundaryGap: false },
+    xAxis: { type: 'category', data: chartLabels, boundaryGap: false },
     yAxis: { type: 'value' },
     series: [{
       name: 'Orders',
       type: 'line',
       smooth: true,
-      data: [2, 5, 3, 8, 4, 7, 6],
+      data: chartValues,
       areaStyle: { opacity: 0.15, color: '#3874ff' },
       lineStyle: { color: '#3874ff', width: 2 },
       itemStyle: { color: '#3874ff' }
@@ -186,7 +202,7 @@ export default function VendorDashboard() {
           </h5>
           <Link to="/vendor/orders" className="btn btn-sm btn-phoenix-primary">View All</Link>
         </div>
-        <div className="card-body p-0">
+        <div className="card-body p-3">
           {recentOrders.length > 0 ? (
             <div className="table-responsive">
               <table className="table table-hover mb-0 fs-9">

@@ -5,6 +5,7 @@ import { setCart } from '../../store/slices/cartSlice'
 import api from '../../store/api/baseApi'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
+import NotificationDropdown from './NotificationDropdown'
 
 export default function CustomerLayout({ children }) {
   const navigate = useNavigate()
@@ -16,6 +17,21 @@ export default function CustomerLayout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDark, setIsDark] = useState(localStorage.getItem('phoenixTheme') === 'dark');
   const [navCategories, setNavCategories] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      api.get(`/products?search=${encodeURIComponent(searchQuery)}&limit=5`)
+        .then(res => setSuggestions(res.data.data.products || []))
+        .catch(() => setSuggestions([]));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleThemeToggle = (e) => {
     const dark = e.target.checked;
@@ -68,14 +84,16 @@ export default function CustomerLayout({ children }) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [dropdownOpen]);
 
-  const handleLogout = () => {
-    api.post('/auth/logout')
-      .then(() => {
-        dispatch(logout())
-        dispatch(setCart({ items: [] }))
-        navigate('/signout')
-      })
-      .catch(() => {})
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch (error) {
+      console.warn('Backend logout failed, clearing local state anyway');
+    } finally {
+      dispatch(logout())
+      dispatch(setCart({ items: [] }))
+      navigate('/signout')
+    }
   }
 
   const handleCartClick = (e) => {
@@ -128,57 +146,26 @@ export default function CustomerLayout({ children }) {
                       </a>
                     </li>
                     )}
-                    <li className="nav-item dropdown feather-icon-wait" style={{height: '40px'}}>
-                      <a className="nav-link px-2 icon-indicator icon-indicator-sm icon-indicator-danger"
-                        id="navbarTopDropdownNotification" href="#" role="button" data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false"
-                        onClick={(e) => e.preventDefault()}>
-                        <span className="text-body-tertiary" data-feather="bell" style={{height:'20px',width:'20px'}}></span>
-                      </a>
-                      <div className="dropdown-menu dropdown-menu-end notification-dropdown-menu py-0 shadow border navbar-dropdown-caret mt-2"
-                        id="navbarDropdownNotfication" aria-labelledby="navbarDropdownNotfication">
-                        <div className="card position-relative border-0">
-                          <div className="card-header p-2">
-                            <div className="d-flex justify-content-between">
-                              <h5 className="text-body-emphasis mb-0">Notifications</h5>
-                              <button className="btn btn-link p-0 fs-9 fw-normal" type="button">Mark all as read</button>
-                            </div>
-                          </div>
-                          <div className="card-body p-0">
-                            <div className="scrollbar-overlay" style={{height: '16rem'}}>
-                              <div className="px-2 px-sm-3 py-3 notification-card position-relative read border-bottom">
-                                <div className="d-flex align-items-center justify-content-between position-relative">
-                                  <div className="d-flex">
-                                    <div className="avatar avatar-m me-3">
-                                      <div className="avatar-name rounded-circle"><span>S</span></div>
-                                    </div>
-                                    <div className="flex-1 me-sm-3">
-                                      <h4 className="fs-9 text-body-emphasis">ShopZone</h4>
-                                      <p className="fs-9 text-body-highlight mb-2 mb-sm-3 fw-normal">
-                                        <span className="me-1 fs-10">🎉</span>Welcome to ShopZone! Start shopping now.
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="card-footer p-0 border-top border-translucent border-0">
-                            <div className="my-2 text-center fw-bold fs-10 text-body-tertiary text-opactity-85">
-                              <Link className="fw-bolder" to="/orders">View all notifications</Link>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
+                    {isAuthenticated ? <NotificationDropdown /> : (
+                      <li className="nav-item dropdown feather-icon-wait" style={{height: '40px'}}>
+                        <a className="nav-link px-2 icon-indicator icon-indicator-sm"
+                          id="navbarTopDropdownNotification" href="#" role="button" data-bs-toggle="dropdown"
+                          data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false"
+                          onClick={(e) => e.preventDefault()}>
+                          <span className="text-body-tertiary" data-feather="bell" style={{height:'20px',width:'20px'}}></span>
+                        </a>
+                      </li>
+                    )}
                     <li className="nav-item dropdown feather-icon-wait dropdown-profile-container" style={{height: '40px'}}>
                       <a className="nav-link px-2" id="navbarDropdownUser" href="#" role="button" aria-haspopup="true" aria-expanded={dropdownOpen}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}>
-                        {isAuthenticated && user?.avatar ? (
-                          <img className="rounded-circle" src={user.avatar} alt="" style={{width: 24, height: 24, objectFit: 'cover'}} />
-                        ) : (
-                          <span className="text-body-tertiary" data-feather="user" style={{height:'20px',width:'20px'}}></span>
-                        )}
+                        <div className="d-flex align-items-center justify-content-center" style={{width: 24, height: 24}}>
+                          {isAuthenticated && user?.avatar ? (
+                            <img className="rounded-circle w-100 h-100" src={user.avatar} alt="" style={{objectFit: 'cover'}} />
+                          ) : (
+                            <span className="fas fa-user text-body-tertiary fs-8"></span>
+                          )}
+                        </div>
                       </a>
                       <div className={`dropdown-menu dropdown-menu-end navbar-dropdown-caret py-0 dropdown-profile shadow border mt-2 ${dropdownOpen ? 'show' : ''}`} aria-labelledby="navbarDropdownUser" data-bs-popper="static">
                         <div className="card position-relative border-0">
@@ -187,7 +174,11 @@ export default function CustomerLayout({ children }) {
                               <div className="card-body p-0">
                                 <div className="text-center pt-4 pb-3">
                                   <div className="avatar avatar-xl ">
-                                    <img className="rounded-circle " src={user?.avatar || '/assets/img/team/72x72/57.webp'} alt="" />
+                                    {user?.avatar ? (
+                                      <img className="rounded-circle" src={user.avatar} alt="" />
+                                    ) : (
+                                      <div className="avatar-name rounded-circle" style={{width:'100%',height:'100%',fontSize:'1.5rem'}}><span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span></div>
+                                    )}
                                   </div>
                                   <h6 className="mt-2 text-body-emphasis">{user?.name || 'User'}</h6>
                                 </div>
@@ -224,13 +215,43 @@ export default function CustomerLayout({ children }) {
                     </li>
                   </ul>
                 </div>
-                <div className="col-12 col-md-6">
+                <div className="col-12 col-md-6 position-relative">
                   <div className="search-box ecommerce-search-box w-100">
-                    <form className="position-relative">
-                      <input className="form-control search-input search form-control-sm" type="search" placeholder="Search" aria-label="Search" />
+                    <form className="position-relative" onSubmit={(e) => {
+                      e.preventDefault();
+                      if (searchQuery.trim()) {
+                        navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+                        setSuggestions([]);
+                        setSearchQuery('');
+                      }
+                    }}>
+                      <input className="form-control search-input search form-control-sm" type="search" placeholder="Search products..." aria-label="Search" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => { if (searchQuery && suggestions.length > 0) setSuggestions([...suggestions]) }}
+                      />
                       <span className="fas fa-search search-box-icon"></span>
                     </form>
                   </div>
+                  {suggestions.length > 0 && searchQuery && (
+                    <div className="dropdown-menu show w-100 position-absolute mt-1 shadow-sm border-translucent" style={{ zIndex: 1050 }}>
+                      <div className="scrollbar" style={{ maxHeight: '300px' }}>
+                        {suggestions.map(s => (
+                          <button key={s._id} className="dropdown-item d-flex align-items-center py-2" onClick={() => {
+                            navigate(`/product/${s._id}`);
+                            setSuggestions([]);
+                            setSearchQuery('');
+                          }}>
+                            <img src={s.images?.[0] || '/assets/img/products/1.png'} alt="" style={{ width: 30, height: 30, objectFit: 'cover' }} className="rounded me-2" />
+                            <div className="flex-1 text-truncate">
+                              <h6 className="mb-0 text-body-highlight text-truncate">{s.name}</h6>
+                              <span className="fs-10 text-body-tertiary">PKR {s.salePrice || s.price}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </nav>
@@ -304,9 +325,7 @@ export default function CustomerLayout({ children }) {
         </div>
       </nav>
       
-      <div className="ecommerce-homepage pt-5 mb-9">
-        {children || <Outlet />}
-      </div>
+      {children || <Outlet />}
 
       <section className="bg-body-highlight dark__bg-gray-1100 py-9">
         <div className="container-small">

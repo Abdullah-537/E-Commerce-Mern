@@ -162,3 +162,38 @@ exports.updateCommissionSettings = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getCustomers = async (req, res, next) => {
+  try {
+    const customers = await User.find({ role: 'customer' })
+      .select('-passwordHash')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: customers });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getComplaints = async (req, res, next) => {
+  try {
+    const Complaint = require('../models/Complaint');
+    const complaints = await Complaint.find()
+      .populate('customerId', 'name email')
+      .populate('vendorId', 'businessName')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: complaints });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.resolveComplaint = async (req, res, next) => {
+  try {
+    const Complaint = require('../models/Complaint');
+    const complaint = await Complaint.findByIdAndUpdate(req.params.id, { status: 'resolved' }, { new: true });
+    res.status(200).json({ success: true, data: complaint });
+  } catch (error) {
+    next(error);
+  }
+};

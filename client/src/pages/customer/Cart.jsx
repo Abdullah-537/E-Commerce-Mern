@@ -94,12 +94,12 @@ export default function Cart() {
                     return (
                       <tr className="cart-table-row" key={i}>
                         <td className="align-middle white-space-nowrap py-0">
-                          <Link className="d-block border border-translucent rounded-2" to={`/products/${item.productId?._id}`}>
+                          <Link className="d-block border border-translucent rounded-2" to={`/product/${item.productId?._id}`}>
                             <img src={item.productId?.images?.[0] || '/assets/img/products/60x60/1.png'} alt="" width="53" />
                           </Link>
                         </td>
                         <td className="products align-middle">
-                          <Link className="fw-semibold mb-0 line-clamp-2" to={`/products/${item.productId?._id}`}>
+                          <Link className="fw-semibold mb-0 line-clamp-2" to={`/product/${item.productId?._id}`}>
                             {item.productId?.name}
                           </Link>
                         </td>

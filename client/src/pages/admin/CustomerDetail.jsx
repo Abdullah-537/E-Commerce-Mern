@@ -35,6 +35,14 @@ export default function CustomerDetail() {
     } catch (e) { toast.error('Failed') }
   }
 
+  const toggleVerify = async () => {
+    try {
+      await api.put(`/users/${id}/verify`, { isVerified: !customer?.isVerified })
+      toast.success(customer?.isVerified ? 'Customer verification removed' : 'Customer verified')
+      fetchData()
+    } catch (e) { toast.error('Failed to update verification status') }
+  }
+
   const statusColors = { pending: 'warning', processing: 'info', shipped: 'primary', delivered: 'success', cancelled: 'danger' }
 
   if (loading) return <div className="text-center py-9"><div className="spinner-border text-primary"></div></div>
@@ -60,6 +68,10 @@ export default function CustomerDetail() {
           <Link to="/admin/customers" className="btn btn-phoenix-secondary btn-sm">
             <span className="fas fa-arrow-left me-1"></span>Back
           </Link>
+          <button className={`btn btn-sm ${customer.isVerified ? 'btn-phoenix-warning' : 'btn-phoenix-info'}`} onClick={toggleVerify}>
+            <span className={`fas fa-${customer.isVerified ? 'user-times' : 'user-check'} me-1`}></span>
+            {customer.isVerified ? 'Remove Verification' : 'Verify Customer'}
+          </button>
           <button className={`btn btn-sm ${customer.isActive ? 'btn-phoenix-danger' : 'btn-phoenix-success'}`} onClick={toggleBan}>
             <span className={`fas fa-${customer.isActive ? 'ban' : 'check'} me-1`}></span>
             {customer.isActive ? 'Ban Customer' : 'Unban Customer'}

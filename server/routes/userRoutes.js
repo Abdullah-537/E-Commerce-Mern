@@ -15,4 +15,9 @@ router.get('/favorite-stores', protect, roleMiddleware('customer', 'vendor', 'ad
 router.post('/favorite-stores/:id', protect, roleMiddleware('customer', 'vendor', 'admin'), userController.addFavoriteStore);
 router.delete('/favorite-stores/:id', protect, roleMiddleware('customer', 'vendor', 'admin'), userController.removeFavoriteStore);
 
+// Admin operations on users
+router.get('/:id', protect, roleMiddleware('admin'), userController.getUserById);
+router.put('/:id/ban', protect, roleMiddleware('admin'), userController.banUser);
+router.put('/:id/verify', protect, roleMiddleware('admin'), userController.verifyUser);
+
 module.exports = router;

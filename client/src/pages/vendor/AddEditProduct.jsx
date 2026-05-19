@@ -21,7 +21,7 @@ export default function AddEditProduct() {
     hasVariants: false,
   })
   const [variants, setVariants] = useState([
-    { optionName: 'Size', optionValues: [''] }
+    { optionName: 'Size', optionValues: [{ value: '', image: '' }] }
   ])
   const [tagInput, setTagInput] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -44,18 +44,14 @@ export default function AddEditProduct() {
           hasVariants: p.hasVariants || false,
         })
         if (p.variants && p.variants.length > 0) {
-          const variantOptions = {}
+          const variantGroups = {}
           p.variants.forEach(v => {
-            if (v.attributes) {
-              Object.entries(v.attributes).forEach(([key, value]) => {
-                if (!variantOptions[key]) variantOptions[key] = new Set()
-                variantOptions[key].add(value)
-              })
-            }
+            if (!variantGroups[v.name]) variantGroups[v.name] = []
+            variantGroups[v.name].push({ value: v.value, image: v.image || '' })
           })
-          const mapped = Object.entries(variantOptions).map(([optionName, values]) => ({
+          const mapped = Object.entries(variantGroups).map(([optionName, optionValues]) => ({
             optionName,
-            optionValues: [...values]
+            optionValues
           }))
           if (mapped.length > 0) setVariants(mapped)
         }
@@ -99,7 +95,7 @@ export default function AddEditProduct() {
   }
 
   const addVariantOption = () => {
-    setVariants(prev => [...prev, { optionName: '', optionValues: [''] }])
+    setVariants(prev => [...prev, { optionName: '', optionValues: [{ value: '', image: '' }] }])
   }
 
   const removeVariantOption = (index) => {
@@ -114,13 +110,27 @@ export default function AddEditProduct() {
     setVariants(prev => prev.map((v, i) => {
       if (i !== optIndex) return v
       const newValues = [...v.optionValues]
-      newValues[valIndex] = value
+      newValues[valIndex] = { ...newValues[valIndex], value }
       return { ...v, optionValues: newValues }
     }))
   }
 
+  const updateVariantImage = (optIndex, valIndex, file) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => {
+      setVariants(prev => prev.map((v, i) => {
+        if (i !== optIndex) return v
+        const newValues = [...v.optionValues]
+        newValues[valIndex] = { ...newValues[valIndex], image: reader.result }
+        return { ...v, optionValues: newValues }
+      }))
+    }
+  }
+
   const addVariantValue = (optIndex) => {
-    setVariants(prev => prev.map((v, i) => i === optIndex ? { ...v, optionValues: [...v.optionValues, ''] } : v))
+    setVariants(prev => prev.map((v, i) => i === optIndex ? { ...v, optionValues: [...v.optionValues, { value: '', image: '' }] } : v))
   }
 
   const removeVariantValue = (optIndex, valIndex) => {
@@ -130,9 +140,27 @@ export default function AddEditProduct() {
     }))
   }
 
-  // Build variant combinations from options
-  const buildVariantCombinations = () => {
-    const validOptions = variants.filter(v => v.optionName && v.optionValues.some(val => val.trim()))
+  // Build flat variants array matching schema
+  const buildFlatVariants = () => {
+    const flatVariants = []
+    variants.forEach(v => {
+      if (!v.optionName) return
+      v.optionValues.forEach(val => {
+        if (val.value.trim()) {
+          flatVariants.push({
+            name: v.optionName,
+            value: val.value.trim(),
+            image: val.image || ''
+          })
+        }
+      })
+    })
+    return flatVariants
+  }
+
+  // Build variant combinations for pricing/stock
+  const buildCombinations = () => {
+    const validOptions = variants.filter(v => v.optionName && v.optionValues.some(val => val.value.trim()))
     if (validOptions.length === 0) return []
 
     const combine = (options) => {
@@ -140,9 +168,9 @@ export default function AddEditProduct() {
       const [first, ...rest] = options
       const restCombos = combine(rest)
       const combos = []
-      for (const val of first.optionValues.filter(v => v.trim())) {
+      for (const val of first.optionValues.filter(v => v.value.trim())) {
         for (const combo of restCombos) {
-          combos.push({ [first.optionName]: val.trim(), ...combo })
+          combos.push({ [first.optionName]: val.value.trim(), ...combo })
         }
       }
       return combos
@@ -168,11 +196,12 @@ export default function AddEditProduct() {
         price: parseFloat(form.price) || 0,
         salePrice: form.salePrice ? parseFloat(form.salePrice) : null,
         stock: parseInt(form.stock) || 0,
-        hasVariants: variants.some(v => v.optionName && v.optionValues.some(val => val.trim())),
+        hasVariants: variants.some(v => v.optionName && v.optionValues.some(val => val.value.trim())),
       }
 
       if (payload.hasVariants) {
-        payload.variants = buildVariantCombinations()
+        payload.productVariants = buildFlatVariants()
+        payload.variants = buildCombinations()
       }
 
       if (id) {
@@ -374,19 +403,12 @@ export default function AddEditProduct() {
                 <div className="tab-pane fade h-100" id="shippingTabContent" role="tabpanel">
                   <div className="d-flex flex-column h-100">
                     <h5 className="mb-3 text-body-highlight">Shipping Type</h5>
-                    <div className="form-check mb-3">
-                      <input className="form-check-input" type="radio" name="shippingType" id="sellerFulfilled" defaultChecked />
-                      <label className="form-check-label fw-bold text-body-highlight" htmlFor="sellerFulfilled">
-                        Fulfilled by Seller
-                      </label>
-                      <p className="text-body-tertiary fs-10 mb-0">You'll be responsible for product delivery.</p>
-                    </div>
                     <div className="form-check">
-                      <input className="form-check-input" type="radio" name="shippingType" id="platformFulfilled" />
+                      <input className="form-check-input" type="radio" name="shippingType" id="platformFulfilled" checked readOnly />
                       <label className="form-check-label fw-bold text-body-highlight" htmlFor="platformFulfilled">
-                        Fulfilled by ShopZone <span className="badge badge-phoenix badge-phoenix-warning ms-1 fs-11">RECOMMENDED</span>
+                        Fulfilled by ShopZone <span className="badge badge-phoenix badge-phoenix-warning ms-1 fs-11">DEFAULT</span>
                       </label>
-                      <p className="text-body-tertiary fs-10 mb-0">Your product, our responsibility. For a small fee, we will handle the delivery.</p>
+                      <p className="text-body-tertiary fs-10 mb-0">Your product, our responsibility. We will handle the delivery.</p>
                     </div>
                   </div>
                 </div>
@@ -437,7 +459,13 @@ export default function AddEditProduct() {
                         onChange={e => setTagInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
                       />
-                      <button type="button" className="btn btn-sm btn-phoenix-primary" onClick={addTag}>Add</button>
+                      <button id="add-tag-btn" type="button" className="btn btn-sm btn-phoenix-primary" onClick={addTag}>Add</button>
+                    </div>
+                    <div className="mb-3">
+                      <span className="text-body-tertiary fs-10 me-2">Suggested:</span>
+                      {['fashion', 'electronics', 'new', 'trending', 'sale'].map(tag => (
+                        <span key={tag} className="badge badge-phoenix badge-phoenix-secondary me-1 cursor-pointer" onClick={() => { setTagInput(tag); setTimeout(() => document.getElementById('add-tag-btn').click(), 0) }} style={{ cursor: 'pointer' }}>+{tag}</span>
+                      ))}
                     </div>
                     {form.tags.length > 0 && (
                       <div className="d-flex flex-wrap gap-1">
@@ -503,21 +531,59 @@ export default function AddEditProduct() {
                   {/* Option Values */}
                   <div className="d-flex flex-column gap-2">
                     {variant.optionValues.map((val, valIndex) => (
-                      <div key={valIndex} className="d-flex gap-1">
+                      <div key={valIndex} className="d-flex gap-2 align-items-center bg-light p-2 rounded">
+                        {/* Variant Image */}
+                        <div className="position-relative" style={{ width: 40, height: 40, flexShrink: 0 }}>
+                          {val.image ? (
+                            <>
+                              <img src={val.image} alt="variant" style={{ width: '100%', height: '100%', objectFit: 'cover' }} className="rounded border" />
+                              <button 
+                                type="button" 
+                                className="btn btn-sm position-absolute top-0 end-0 p-0 m-0 bg-danger text-white rounded-circle d-flex align-items-center justify-content-center"
+                                style={{ width: 16, height: 16, transform: 'translate(25%, -25%)' }}
+                                onClick={() => {
+                                  const e = { target: { value: '' } }
+                                  updateVariantImage(optIndex, valIndex, null)
+                                }}
+                              >
+                                <span className="fas fa-times" style={{ fontSize: 8 }}></span>
+                              </button>
+                            </>
+                          ) : (
+                            <div 
+                              className="border border-dashed rounded d-flex align-items-center justify-content-center bg-white cursor-pointer w-100 h-100"
+                              onClick={() => document.getElementById(`variant-img-${optIndex}-${valIndex}`).click()}
+                              title="Add variant image"
+                            >
+                              <span className="fas fa-image text-body-tertiary fs-10"></span>
+                            </div>
+                          )}
+                          <input 
+                            type="file" 
+                            id={`variant-img-${optIndex}-${valIndex}`} 
+                            className="d-none" 
+                            accept="image/*"
+                            onChange={(e) => updateVariantImage(optIndex, valIndex, e.target.files[0])}
+                          />
+                        </div>
+                        
+                        {/* Variant Text */}
                         <input
                           type="text"
                           className="form-control form-control-sm"
                           placeholder={`e.g. ${variant.optionName === 'Size' ? 'Medium' : variant.optionName === 'Color' ? 'Black' : 'Value'}`}
-                          value={val}
+                          value={val.value}
                           onChange={e => updateVariantValue(optIndex, valIndex, e.target.value)}
                         />
+                        
+                        {/* Remove */}
                         {variant.optionValues.length > 1 && (
                           <button
                             type="button"
                             className="btn btn-sm btn-phoenix-danger px-2"
                             onClick={() => removeVariantValue(optIndex, valIndex)}
                           >
-                            <span className="fas fa-times fs-10"></span>
+                            <span className="fas fa-trash-alt fs-10"></span>
                           </button>
                         )}
                       </div>

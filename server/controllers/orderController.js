@@ -158,8 +158,7 @@ exports.createOrder = async (req, res, next) => {
       expiresAt,
     });
 
-    console.log(`\n[SHOPZONE] Order Created: ${order._id}`);
-    console.log(`[SHOPZONE] Sending OTP ${otpCode} to Shipping Phone: ${destinationPhone}\n`);
+
 
     // Build professional WhatsApp message with product details
     const orderIdShort = order._id.toString().slice(-8).toUpperCase();
@@ -278,7 +277,7 @@ exports.verifyOTP = async (req, res, next) => {
 
     // Now clear the customer's cart since order is confirmed
     const Cart = require('../models/Cart');
-    await Cart.findOneAndDelete({ userId: customerId });
+    await Cart.findOneAndDelete({ customerId: customerId });
 
     // Create Commission records
     for (const item of order.items) {
@@ -300,6 +299,32 @@ exports.verifyOTP = async (req, res, next) => {
       'Order Confirmed - ShopZone',
       `<h2>Your order #${order._id} is confirmed!</h2><p>We're preparing it for shipment.</p>`
     );
+
+    const { createNotification } = require('../utils/notificationHelper');
+    // Notify customer
+    await createNotification({
+      userId: customerId,
+      title: 'Order Confirmed',
+      message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been confirmed.`,
+      type: 'order',
+      link: `/order/${order._id}`
+    });
+
+    // Notify vendors
+    const Vendor = require('../models/Vendor');
+    const vendorIds = [...new Set(order.items.map(i => i.vendorId.toString()))];
+    for (const vId of vendorIds) {
+      const vendorRecord = await Vendor.findById(vId);
+      if (vendorRecord) {
+        await createNotification({
+          userId: vendorRecord.userId,
+          title: 'New Order Received',
+          message: `You have received a new order #${order._id.toString().slice(-8).toUpperCase()}.`,
+          type: 'order',
+          link: `/vendor/orders/${order._id}`
+        });
+      }
+    }
 
     res.status(200).json({ success: true, data: { orderId: order._id }, message: 'Order confirmed!' });
   } catch (error) {
@@ -361,15 +386,25 @@ exports.getMyOrders = async (req, res, next) => {
 // GET ORDER BY ID (customer/vendor/admin)
 exports.getOrderById = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id)
+      .populate('customerId', 'name email phone')
+      .populate('addressId')
+      .populate('items.vendorId', 'businessName email phone userId');
 
     if (!order) {
       return next(ApiError.notFound('Order not found'));
     }
 
     // Check access
-    const isCustomer = order.customerId.toString() === req.user._id.toString();
-    const isVendor = order.items.some(i => i.vendorId.toString() === req.user._id.toString()) && req.user.role === 'vendor';
+    const isCustomer = order.customerId?._id?.toString() === req.user._id.toString();
+    let isVendor = false;
+    if (req.user.role === 'vendor') {
+      const Vendor = require('../models/Vendor');
+      const vendorRecord = await Vendor.findOne({ userId: req.user._id });
+      if (vendorRecord) {
+        isVendor = order.items.some(i => i.vendorId?._id?.toString() === vendorRecord._id.toString() || i.vendorId?.toString() === vendorRecord._id.toString());
+      }
+    }
     const isAdmin = req.user.role === 'admin';
 
     if (!isCustomer && !isVendor && !isAdmin) {
@@ -441,23 +476,22 @@ exports.updateStatus = async (req, res, next) => {
       return next(ApiError.notFound('Order not found'));
     }
 
-    // Status transitions
-    const allowedTransitions = {
-      pending: ['processing', 'cancelled'],
-      processing: ['shipped', 'cancelled'],
-      shipped: ['delivered'],
-      delivered: [],
-      cancelled: [],
-    };
+    if (req.user.role === 'vendor' && status !== 'cancelled') {
+      return next(ApiError.forbidden('Vendors can only cancel orders'));
+    }
 
-    if (!allowedTransitions[order.status].includes(status)) {
-      return next(ApiError.badRequest(`Cannot transition from ${order.status} to ${status}`));
+    // Removed strict transitions so Admin can freely update statuses if needed
+    // The previous allowedTransitions blocked direct updates from pending to shipped, etc.
+
+    if (order.status === 'delivered') {
+      return next(ApiError.badRequest('Order is already delivered and cannot be modified directly'));
     }
 
     order.status = status;
 
     // Handle delivery - credit vendor
     if (status === 'delivered') {
+      order.paymentStatus = 'paid';
       for (const item of order.items) {
         const vendor = await Vendor.findById(item.vendorId);
         if (vendor) {
@@ -497,7 +531,35 @@ exports.updateStatus = async (req, res, next) => {
     // Send email notification
     const user = await require('../models/User').findById(order.customerId);
     if (user) {
-      await sendEmail(user.email, `Order Status Update - ShopZone`, `<p>Your order status is now: ${status}</p>`);
+      await order.populate('items.productId', 'name images');
+      let message = `<p>Your order status has been updated to: <strong>${status.toUpperCase()}</strong></p>`;
+      
+      if (status === 'shipped') {
+         message += `<p>Great news! Your order is on its way. Track your package soon.</p>`;
+      } else if (status === 'delivered') {
+         message += `<p>Your order has been delivered! We hope you love your products.</p>`;
+      } else if (status === 'cancelled') {
+         const cancelReason = req.body.reason || 'No specific reason provided.';
+         message += `<p>Your order has been cancelled.</p><p>Reason: ${cancelReason}</p>`;
+      }
+
+      message += `<h3>Order Items:</h3><ul>`;
+      order.items.forEach(item => {
+        const productName = item.productId ? item.productId.name : 'Unknown Product';
+        message += `<li>${productName} - Qty: ${item.quantity} (PKR ${item.price})</li>`;
+      });
+      message += `</ul><p>Total Amount: PKR ${order.totalAmount}</p>`;
+
+      await sendEmail(user.email, `Order ${status.toUpperCase()} - ShopZone`, message);
+
+      const { createNotification } = require('../utils/notificationHelper');
+      await createNotification({
+        userId: user._id,
+        title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been ${status}.`,
+        type: 'order',
+        link: `/order/${order._id}`
+      });
     }
 
     res.status(200).json({ success: true, data: order, message: 'Order status updated' });
@@ -506,7 +568,7 @@ exports.updateStatus = async (req, res, next) => {
   }
 };
 
-// UPDATE FULFILLMENT (vendor)
+// UPDATE FULFILLMENT (admin)
 exports.updateFulfillment = async (req, res, next) => {
   try {
     const { trackingNumber } = req.body;
@@ -516,42 +578,22 @@ exports.updateFulfillment = async (req, res, next) => {
       return next(ApiError.notFound('Order not found'));
     }
 
-    // Verify vendor owns items in this order
-    const vendor = await Vendor.findOne({ userId: req.user._id });
-    const hasItems = order.items.some(i => i.vendorId.toString() === vendor._id.toString());
-
-    if (!hasItems) {
-      return next(ApiError.forbidden('Not authorized'));
-    }
-
     // Check if can ship
-    if (!['processing'].includes(order.status)) {
+    if (!['processing', 'shipped'].includes(order.status)) {
       return next(ApiError.badRequest('Order cannot be shipped in current status'));
     }
 
-    // Update vendor's items with tracking
+    // Update all items with tracking
     order.items = order.items.map(item => {
-      if (item.vendorId.toString() === vendor._id.toString()) {
-        return { ...item, trackingNumber };
-      }
-      return item;
+      return { ...item, trackingNumber };
     });
 
-    // If all items have tracking, update status to shipped
-    const allShipped = order.items.every(i => i.trackingNumber);
-    if (allShipped) {
-      order.status = 'shipped';
-    }
-
-    // Use first tracking number for order if available
-    const firstTracking = order.items.find(i => i.trackingNumber);
-    if (firstTracking) {
-      order.trackingNumber = firstTracking.trackingNumber;
-    }
+    order.status = 'shipped';
+    order.trackingNumber = trackingNumber;
 
     await order.save();
 
-    res.status(200).json({ success: true, data: order, message: 'Fulfillment updated' });
+    res.status(200).json({ success: true, data: order, message: 'Fulfillment updated by Admin' });
   } catch (error) {
     next(error);
   }

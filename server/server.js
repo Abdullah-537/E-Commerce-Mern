@@ -18,19 +18,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Routes (placeholder - will be implemented in later steps)
+// Routes
 app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/vendor', require('./routes/vendorRoutes'));
-app.use('/api/products', require('./routes/productRoutes'));
-app.use('/api/categories', require('./routes/categoryRoutes'));
-app.use('/api/orders', require('./routes/orderRoutes'));
-app.use('/api/cart', require('./routes/cartRoutes'));
-app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/refunds', require('./routes/refundRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/cart', require('./routes/cartRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/vendor', require('./routes/vendorRoutes'));
 app.use('/api/coupons', require('./routes/couponRoutes'));
-app.use('/api/payouts', require('./routes/payoutRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/payouts', require('./routes/payoutRoutes'));
+app.use('/api/refunds', require('./routes/refundRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Health Check
 app.get('/api/health', (req, res) => {

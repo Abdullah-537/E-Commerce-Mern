@@ -20,7 +20,7 @@ const orderSchema = new mongoose.Schema({
   items: [orderItemSchema],
   status: {
     type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'refund_requested', 'refund_approved'],
     default: 'pending',
   },
   otpVerified: { type: Boolean, default: false },

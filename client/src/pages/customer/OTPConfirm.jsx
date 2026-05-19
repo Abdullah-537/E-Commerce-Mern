@@ -82,7 +82,7 @@ export default function OTPConfirm() {
             <div className="d-flex justify-content-center gap-2 mb-4">
               {code.map((c, i) => (
                 <input key={i} id={`otp-${i}`} type="text" className="form-control text-center"
-                  style={{ width: 50, fontSize: 24 }} maxLength={1} value={c}
+                  style={{ width: 50, fontSize: 24 }} maxLength={1} value={c} autoComplete="off"
                   onChange={(e) => handleChange(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)} />
               ))}

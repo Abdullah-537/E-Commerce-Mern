@@ -125,7 +125,8 @@ export default function AllProducts() {
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Vendor</th>
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Stock</th>
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Status</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Published On</th>
+                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end">Published On</th>
+                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -166,6 +167,16 @@ export default function AllProducts() {
                       </td>
                       <td className="align-middle text-end text-body-tertiary pe-3 fs-10">
                         {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                      </td>
+                      <td className="align-middle text-end pe-3">
+                        <div className="btn-group">
+                          <Link to={`/products/${p._id}`} className="btn btn-sm btn-phoenix-primary px-2" title="View">
+                            <span className="fas fa-eye"></span>
+                          </Link>
+                          <button className="btn btn-sm btn-phoenix-danger px-2" title="Delete">
+                            <span className="fas fa-trash"></span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

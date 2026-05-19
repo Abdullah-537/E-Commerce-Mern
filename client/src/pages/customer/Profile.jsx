@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { updateUser } from '../../store/slices/authSlice'
 import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
+import { getProvinces, getCitiesByProvince } from '../../utils/pakistanCities'
 import { Link } from 'react-router-dom'
 import AccountSidebar from '../../components/common/AccountSidebar'
 
@@ -52,7 +53,7 @@ export default function Profile() {
     } catch (err) { toast.error('Failed to add address') }
   }
 
-  const avatarSrc = user?.avatar || '/assets/img/team/avatar.webp'
+  const initial = user?.name?.charAt(0)?.toUpperCase() || 'U'
 
   return (
     <section className="pt-5 pb-9">
@@ -82,7 +83,11 @@ export default function Profile() {
               <div className="col-auto">
                 <div className="position-relative" style={{ cursor: 'pointer' }} onClick={() => document.getElementById('avatar-upload').click()}>
                   <div className="avatar avatar-5xl">
-                    <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 120, height: 120, objectFit: 'cover' }} />
+                    {user?.avatar ? (
+                      <img className="rounded-circle" src={user.avatar} alt="" style={{ width: 120, height: 120, objectFit: 'cover' }} />
+                    ) : (
+                      <div className="avatar-name rounded-circle" style={{ width: 120, height: 120, fontSize: '3rem' }}><span>{initial}</span></div>
+                    )}
                   </div>
                   <div className="position-absolute bottom-0 end-0 bg-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
                     <span className="fas fa-camera text-white fs-10"></span>
@@ -124,12 +129,17 @@ export default function Profile() {
                     <span className="fas fa-phone me-2 fs-10"></span>{user.phone}
                   </p>
                 )}
-                <div className="d-flex gap-2 mt-2">
-                  <span className={`badge badge-phoenix badge-phoenix-${user?.role === 'admin' ? 'danger' : user?.role === 'vendor' ? 'success' : 'primary'} fs-10`}>
+                <div className="d-flex gap-2 mt-2 flex-wrap">
+                  <span className={`badge rounded-pill px-3 py-2 fs-10 fw-bold ${
+                    user?.role === 'admin' ? 'bg-danger-subtle text-danger' : 
+                    user?.role === 'vendor' ? 'bg-success-subtle text-success' : 
+                    'bg-primary-subtle text-primary'
+                  }`}>
+                    <span className={`fas ${user?.role === 'admin' ? 'fa-shield-halved' : user?.role === 'vendor' ? 'fa-store' : 'fa-user'} me-1`}></span>
                     {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
                   </span>
                   {user?.isVerified && (
-                    <span className="badge badge-phoenix badge-phoenix-success fs-10">
+                    <span className="badge rounded-pill bg-success-subtle text-success px-3 py-2 fs-10 fw-bold">
                       <span className="fas fa-check-circle me-1"></span>Verified
                     </span>
                   )}
@@ -198,7 +208,7 @@ export default function Profile() {
                 <h4 className="mb-0">
                   <span className="fas fa-shopping-bag me-2 text-primary"></span>Recent Orders
                 </h4>
-                <Link to="/order-tracking" className="btn btn-sm btn-phoenix-primary">View All</Link>
+                <Link to="/orders" className="btn btn-sm btn-phoenix-primary">View All</Link>
               </div>
               <div className="card-body p-0">
                 {ordersLoading ? (
@@ -271,13 +281,19 @@ export default function Profile() {
                     </div>
                     <input className="form-control form-control-sm mb-2" placeholder="Street Address" value={newAddress.street} onChange={e => setNewAddress({...newAddress, street: e.target.value})} required />
                     <div className="row g-2 mb-2">
-                      <div className="col-4">
-                        <input className="form-control form-control-sm" placeholder="City" value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} required />
+                      <div className="col-sm-6">
+                        <select className="form-select form-select-sm" value={newAddress.province} onChange={e => setNewAddress({...newAddress, province: e.target.value, city: ''})} required>
+                          <option value="">Province</option>
+                          {getProvinces().map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
                       </div>
-                      <div className="col-4">
-                        <input className="form-control form-control-sm" placeholder="Province" value={newAddress.province} onChange={e => setNewAddress({...newAddress, province: e.target.value})} required />
+                      <div className="col-sm-6">
+                        <select className="form-select form-select-sm" value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} required disabled={!newAddress.province}>
+                          <option value="">City</option>
+                          {getCitiesByProvince(newAddress.province).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                       </div>
-                      <div className="col-4">
+                      <div className="col-12">
                         <input className="form-control form-control-sm" placeholder="Postal Code" value={newAddress.postalCode} onChange={e => setNewAddress({...newAddress, postalCode: e.target.value})} required />
                       </div>
                     </div>

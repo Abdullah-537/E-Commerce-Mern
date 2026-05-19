@@ -12,6 +12,14 @@ export default function Payouts() {
     api.get(`/payouts${filter !== 'all' ? `?status=${filter}` : ''}`).then(res => setPayouts(res.data.data || [])).catch(() => {}).finally(() => setLoading(false))
   }, [filter])
 
+  const approvePayout = async (id) => {
+    try { 
+      await api.put(`/payouts/${id}/approve`); 
+      setPayouts(payouts.map(p => p._id === id ? { ...p, status: 'approved' } : p)); 
+      toast.success('Approved') 
+    } catch { toast.error('Failed to approve') }
+  }
+
   const markPaid = async (id) => {
     const ref = prompt('Enter transaction reference:')
     if (!ref) return
@@ -71,9 +79,19 @@ export default function Payouts() {
                       <td className="align-middle text-center"><span className={`badge badge-phoenix badge-phoenix-${statusColors[p.status] || 'secondary'} fs-10`}>{p.status}</span></td>
                       <td className="align-middle text-body-tertiary fs-10">{p.requestedAt ? new Date(p.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
                       <td className="align-middle text-end pe-3">
+                        {p.status === 'pending' && (
+                          <button className="btn btn-phoenix-info btn-sm px-2 py-0 fs-10 me-2" onClick={() => approvePayout(p._id)}>
+                            <span className="fas fa-check me-1"></span>Approve
+                          </button>
+                        )}
                         {p.status === 'approved' && (
-                          <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => markPaid(p._id)}>
+                          <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10 me-2" onClick={() => markPaid(p._id)}>
                             <span className="fas fa-check-circle me-1"></span>Mark Paid
+                          </button>
+                        )}
+                        {p.status === 'paid' && (
+                          <button className="btn btn-phoenix-secondary btn-sm px-2 py-0 fs-10" onClick={() => toast.info('Invoice coming soon')}>
+                            <span className="fas fa-file-invoice me-1"></span>Invoice
                           </button>
                         )}
                       </td>

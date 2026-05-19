@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import api from '../../store/api/baseApi'
 import AccountSidebar from '../../components/common/AccountSidebar'
 
 export default function CustomerOrders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refundOrderId, setRefundOrderId] = useState(null)
+  const [refundReason, setRefundReason] = useState('')
+  const [submittingRefund, setSubmittingRefund] = useState(false)
 
   useEffect(() => {
     api.get('/orders/my-orders')
@@ -20,6 +24,9 @@ export default function CustomerOrders() {
       case 'shipped': return <span className="badge badge-phoenix badge-phoenix-primary">Shipped</span>
       case 'processing': return <span className="badge badge-phoenix badge-phoenix-info">Processing</span>
       case 'cancelled': return <span className="badge badge-phoenix badge-phoenix-danger">Cancelled</span>
+      case 'refunded': return <span className="badge badge-phoenix badge-phoenix-danger">Refunded</span>
+      case 'refund_requested': return <span className="badge badge-phoenix badge-phoenix-warning">Refund Requested</span>
+      case 'refund_approved': return <span className="badge badge-phoenix badge-phoenix-info">Refund Approved</span>
       default: return <span className="badge badge-phoenix badge-phoenix-warning">Pending</span>
     }
   }
@@ -94,26 +101,71 @@ export default function CustomerOrders() {
                     
                     {/* Order Body */}
                     <div className="card-body p-4">
-                      <div className="mb-4">
-                        <h5 className="mb-1 text-body-emphasis">Status: {getStatusBadge(order.status)}</h5>
-                        {order.status === 'shipped' && order.trackingNumber && (
-                          <p className="fs-9 text-body-tertiary mb-0">Tracking: <span className="fw-semibold text-body-emphasis">{order.trackingNumber}</span></p>
+                      <div className="mb-4 d-flex justify-content-between align-items-center">
+                        <div>
+                          <h5 className="mb-1 text-body-emphasis">Status: {getStatusBadge(order.status)}</h5>
+                          {order.status === 'shipped' && order.trackingNumber && (
+                            <p className="fs-9 text-body-tertiary mb-0">Tracking: <span className="fw-semibold text-body-emphasis">{order.trackingNumber}</span></p>
+                          )}
+                        </div>
+                        {order.status === 'delivered' && (
+                          <button className="btn btn-sm btn-outline-danger" onClick={() => {
+                            setRefundOrderId(order._id);
+                            setRefundReason('');
+                          }}>Request Refund</button>
                         )}
                       </div>
+
+                      {refundOrderId === order._id && (
+                        <div className="mb-4 p-3 border border-danger rounded bg-danger-subtle">
+                          <h6 className="text-danger mb-2">Request Refund</h6>
+                          <textarea 
+                            className="form-control mb-2" 
+                            rows="2" 
+                            placeholder="Please enter a reason for the refund request..."
+                            value={refundReason}
+                            onChange={e => setRefundReason(e.target.value)}
+                            disabled={submittingRefund}
+                          ></textarea>
+                          <div className="d-flex justify-content-end gap-2">
+                            <button className="btn btn-sm btn-outline-secondary" onClick={() => setRefundOrderId(null)} disabled={submittingRefund}>Cancel</button>
+                            <button className="btn btn-sm btn-danger" onClick={() => {
+                              if (!refundReason.trim()) {
+                                toast.error('Please enter a reason');
+                                return;
+                              }
+                              setSubmittingRefund(true);
+                              api.post('/refunds', { orderId: order._id, reason: refundReason })
+                                .then(() => {
+                                  toast.success("Refund requested successfully");
+                                  setRefundOrderId(null);
+                                  // Update order status locally to 'refund_requested'
+                                  setOrders(orders.map(o => o._id === order._id ? { ...o, status: 'refund_requested' } : o));
+                                })
+                                .catch(err => toast.error(err.response?.data?.message || "Failed to request refund"))
+                                .finally(() => setSubmittingRefund(false));
+                            }} disabled={submittingRefund}>
+                              {submittingRefund ? 'Submitting...' : 'Submit Request'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="d-flex flex-column gap-3">
                         {order.items.map((item, index) => (
                           <div key={index} className="d-flex align-items-center gap-3">
-                            <div className="border border-translucent rounded-3 p-1" style={{ width: 80, height: 80, background: 'var(--phoenix-body-highlight-bg)' }}>
-                              <img src={item.productImage || '/assets/img/products/1.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                            </div>
-                            <div className="flex-1">
-                              <Link to={`/product/${item.productId}`} className="text-body-emphasis text-decoration-none fw-semibold d-block mb-1">
-                                {item.productName}
-                              </Link>
-                              <p className="fs-9 text-body-tertiary mb-1">Quantity: {item.quantity}</p>
-                              <p className="fs-9 fw-bold text-body-emphasis mb-0">PKR {item.price?.toLocaleString()}</p>
-                            </div>
+                            <Link to={`/product/${item.productId}`} className="d-flex align-items-center gap-3 text-decoration-none flex-1">
+                              <div className="border border-translucent rounded-3 p-1" style={{ width: 80, height: 80, background: 'var(--phoenix-body-highlight-bg)' }}>
+                                <img src={item.productImage || '/assets/img/products/1.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                              </div>
+                              <div className="flex-1">
+                                <span className="text-body-emphasis fw-semibold d-block mb-1">
+                                  {item.productName}
+                                </span>
+                                <p className="fs-9 text-body-tertiary mb-1">Quantity: {item.quantity}</p>
+                                <p className="fs-9 fw-bold text-body-emphasis mb-0">PKR {item.price?.toLocaleString()}</p>
+                              </div>
+                            </Link>
                             <div className="d-none d-sm-block">
                               <button className="btn btn-phoenix-secondary btn-sm px-3">Buy it again</button>
                             </div>

@@ -43,10 +43,10 @@ export default function Register() {
     }
     setLoading(true)
     try {
-      const { data } = await api.post('/auth/register', formData)
-      dispatch(setCredentials({ user: data.data.user, accessToken: data.data.accessToken }))
-      toast.success('Registration successful')
-      navigate('/')
+      const res = await api.post('/auth/register', formData)
+      
+      toast.success(res.data.message || 'Registration successful. Please verify your email.')
+      navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed')
     } finally {

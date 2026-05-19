@@ -3,6 +3,8 @@ import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../../store/slices/authSlice'
 import { toast } from 'react-toastify'
 import { useEffect, useState } from 'react'
+import api from '../../store/api/baseApi'
+import NotificationDropdown from './NotificationDropdown'
 
 const vendorNavItems = [
   { path: '/vendor', label: 'Dashboard', icon: 'fas fa-chart-pie', exact: true },
@@ -39,9 +41,15 @@ export default function VendorLayout({ children }) {
     localStorage.setItem('phoenixTheme', newTheme)
   }
 
-  const handleLogout = () => {
-    dispatch(logout())
-    navigate('/signout')
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch (error) {
+      console.warn('Backend logout failed');
+    } finally {
+      dispatch(logout())
+      navigate('/signout')
+    }
   }
 
   useEffect(() => {
@@ -59,7 +67,19 @@ export default function VendorLayout({ children }) {
     return location.pathname.startsWith(item.path)
   }
 
-  const avatarSrc = user?.avatar || user?.vendor?.logo || '/assets/img/team/avatar.webp'
+  const avatarSrc = user?.avatar || user?.vendor?.logo
+  const getInitial = () => (user?.vendor?.businessName || user?.name || 'V').charAt(0).toUpperCase()
+
+  const renderAvatar = (size = 36) => {
+    if (avatarSrc) {
+      return <img className="rounded-circle flex-shrink-0" src={avatarSrc} alt="" style={{ width: size, height: size, minWidth: size, minHeight: size, objectFit: 'cover' }} />
+    }
+    return (
+      <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: size, height: size, minWidth: size, minHeight: size, fontSize: size * 0.4 }}>
+        {getInitial()}
+      </div>
+    )
+  }
 
   return (
     <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
@@ -110,6 +130,10 @@ export default function VendorLayout({ children }) {
                 <span className={`fas fa-${isDark ? 'sun' : 'moon'}`}></span>
               </button>
 
+              <ul className="navbar-nav navbar-nav-icons flex-row">
+                <NotificationDropdown />
+              </ul>
+
               {/* Visit Store */}
               <Link to="/" className="btn btn-sm btn-phoenix-primary d-none d-lg-inline-flex align-items-center gap-1">
                 <span className="fas fa-store fs-10"></span>
@@ -123,7 +147,7 @@ export default function VendorLayout({ children }) {
                   onClick={(e) => { e.stopPropagation(); setProfileDropdown(!profileDropdown) }}
                 >
                   <div className="avatar avatar-m">
-                    <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                    {renderAvatar(36)}
                   </div>
                   <div className="d-none d-md-block text-start">
                     <h6 className="mb-0 text-body-emphasis fs-10 lh-1">{user?.vendor?.businessName || user?.name || 'Vendor'}</h6>
@@ -132,29 +156,36 @@ export default function VendorLayout({ children }) {
                   <span className="fas fa-chevron-down text-body-quaternary fs-11 ms-1 d-none d-md-block"></span>
                 </button>
                 {profileDropdown && (
-                  <div className="dropdown-menu dropdown-menu-end show shadow-lg border border-translucent py-2" style={{ position: 'absolute', right: 0, top: 44, minWidth: 220 }}>
-                    <div className="px-3 py-2 border-bottom border-translucent">
-                      <div className="d-flex align-items-center gap-2">
-                        <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />
-                        <div>
-                          <h6 className="mb-0 text-body-emphasis fs-9">{user?.name}</h6>
-                          <p className="mb-0 text-body-tertiary fs-10">{user?.email}</p>
-                        </div>
+                  <div className="dropdown-menu dropdown-menu-end show shadow-lg border border-translucent py-3" style={{ position: 'absolute', right: '0', left: 'auto', top: 44, minWidth: 240, transform: 'translateX(-10px)' }}>
+                    <div className="d-flex flex-column align-items-center px-4 py-3">
+                      <div className="mb-2">
+                        {renderAvatar(64)}
                       </div>
+                      <h5 className="mb-0 text-body-emphasis">{user?.vendor?.businessName || user?.name || 'Vendor'}</h5>
+                      <p className="mb-0 text-body-tertiary fs-10">{user?.email}</p>
                     </div>
-                    <Link className="dropdown-item py-2 fs-9" to="/vendor/profile" onClick={() => setProfileDropdown(false)}>
-                      <span className="fas fa-user me-2 text-body-quaternary"></span>My Profile
-                    </Link>
-                    <Link className="dropdown-item py-2 fs-9" to="/vendor" onClick={() => setProfileDropdown(false)}>
-                      <span className="fas fa-chart-pie me-2 text-body-quaternary"></span>Dashboard
-                    </Link>
-                    <Link className="dropdown-item py-2 fs-9" to="/" onClick={() => setProfileDropdown(false)}>
-                      <span className="fas fa-store me-2 text-body-quaternary"></span>Visit Store
-                    </Link>
+                    
                     <div className="dropdown-divider"></div>
-                    <button className="dropdown-item py-2 fs-9 text-danger" onClick={handleLogout}>
-                      <span className="fas fa-sign-out-alt me-2"></span>Sign out
-                    </button>
+                    
+                    {location.pathname !== '/vendor' && (
+                      <Link className="dropdown-item py-2" to="/vendor" onClick={() => setProfileDropdown(false)}>
+                        Vendor Dashboard
+                      </Link>
+                    )}
+                    <Link className="dropdown-item py-2 d-flex align-items-center" to="/vendor/profile" onClick={() => setProfileDropdown(false)}>
+                      <span className="far fa-user me-2 fs-9"></span>Profile
+                    </Link>
+                    <Link className="dropdown-item py-2 d-flex align-items-center" to="/" onClick={() => setProfileDropdown(false)}>
+                      <span className="fas fa-store me-2 fs-9 text-body-tertiary"></span>Visit Store
+                    </Link>
+                    
+                    <div className="dropdown-divider"></div>
+                    
+                    <div className="px-3 pt-2">
+                      <button className="btn btn-phoenix-secondary w-100 d-flex justify-content-center align-items-center" onClick={handleLogout}>
+                        <span className="fas fa-sign-out-alt me-2"></span>Sign out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

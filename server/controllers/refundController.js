@@ -44,6 +44,9 @@ exports.requestRefund = async (req, res, next) => {
       amount: order.totalAmount,
     });
 
+    order.status = 'refund_requested';
+    await order.save();
+
     res.status(201).json({ success: true, data: refund, message: 'Refund requested' });
   } catch (error) {
     next(error);
@@ -85,22 +88,54 @@ exports.approveRefund = async (req, res, next) => {
       return next(ApiError.notFound('Refund not found'));
     }
 
+    if (req.user.role === 'vendor') {
+      const vendor = await Vendor.findOne({ userId: req.user._id });
+      if (refund.vendorId.toString() !== vendor._id.toString()) {
+        return next(ApiError.forbidden('Not authorized to approve this refund'));
+      }
+    }
+
     refund.status = 'approved';
-    refund.adminNote = adminNote;
+    refund.adminNote = adminNote || refund.adminNote;
     refund.resolvedAt = Date.now();
     await refund.save();
 
     // Update order
-    await Order.findByIdAndUpdate(refund.orderId, { paymentStatus: 'refunded' });
+    await Order.findByIdAndUpdate(refund.orderId, { status: 'refund_approved' });
 
     // Notify customer
     const User = require('../models/User');
     const user = await User.findById(refund.customerId);
     if (user) {
-      await sendEmail(user.email, 'Refund Approved - ShopZone', `<p>Your refund of PKR ${refund.amount} has been approved.</p>`);
+      const sendEmail = require('../utils/sendEmail');
+      await sendEmail(user.email, 'Refund Approved - ShopZone', `<p>Your refund of PKR ${refund.amount} has been approved and is being processed.</p>`);
     }
 
     res.status(200).json({ success: true, data: refund, message: 'Refund approved' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markRefunded = async (req, res, next) => {
+  try {
+    const refund = await Refund.findById(req.params.id);
+
+    if (!refund) {
+      return next(ApiError.notFound('Refund not found'));
+    }
+
+    if (req.user.role !== 'admin') {
+      return next(ApiError.forbidden('Only admins can process the actual refund transfer'));
+    }
+
+    refund.status = 'refunded';
+    await refund.save();
+
+    // Update order
+    await Order.findByIdAndUpdate(refund.orderId, { paymentStatus: 'refunded', status: 'refunded' });
+
+    res.status(200).json({ success: true, data: refund, message: 'Marked as refunded' });
   } catch (error) {
     next(error);
   }
@@ -115,10 +150,20 @@ exports.rejectRefund = async (req, res, next) => {
       return next(ApiError.notFound('Refund not found'));
     }
 
+    if (req.user.role === 'vendor') {
+      const vendor = await Vendor.findOne({ userId: req.user._id });
+      if (refund.vendorId.toString() !== vendor._id.toString()) {
+        return next(ApiError.forbidden('Not authorized to reject this refund'));
+      }
+    }
+
     refund.status = 'rejected';
-    refund.adminNote = adminNote;
+    refund.adminNote = adminNote || refund.adminNote;
     refund.resolvedAt = Date.now();
     await refund.save();
+
+    // Restore order status back to delivered
+    await Order.findByIdAndUpdate(refund.orderId, { status: 'delivered' });
 
     res.status(200).json({ success: true, data: refund, message: 'Refund rejected' });
   } catch (error) {

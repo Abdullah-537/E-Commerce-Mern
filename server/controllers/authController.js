@@ -21,17 +21,26 @@ const setRefreshCookie = (res, token) => {
 // REGISTER
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, phone, role = 'customer' } = req.body;
+    let { name, email, password, phone, role = 'customer' } = req.body;
+    email = email?.trim().toLowerCase();
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(ApiError.conflict('Email already registered'));
+      if (existingUser.isVerified) {
+        return next(ApiError.conflict('Email already registered'));
+      }
+      // If user exists but not verified, we could resend OTP, but for simplicity, let's just delete the unverified user or overwrite.
+      await User.deleteOne({ email });
     }
 
     // Hash password
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     // Create user
     const user = await User.create({
@@ -40,8 +49,70 @@ exports.register = async (req, res, next) => {
       passwordHash,
       phone,
       role: role === 'vendor' ? 'vendor' : 'customer',
+      isVerified: false,
+      otp,
+      otpExpiry,
     });
 
+    // Send email
+    const message = `
+      <h2>Welcome to ShopZone!</h2>
+      <p>Your verification code is: <strong>${otp}</strong></p>
+      <p>This code will expire in 10 minutes.</p>
+    `;
+
+    try {
+      await sendEmail(user.email, 'ShopZone - Verify your email', message);
+    } catch (err) {
+      console.error('Email send error:', err);
+      // Even if email fails, we continue (useful for testing with missing credentials)
+    }
+
+    const response = new ApiResponse(201, {
+      email: user.email,
+    }, 'Registration successful. Please check your email for the OTP.');
+
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// VERIFY OTP
+exports.verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    console.log(`[VERIFY OTP] Attempting to verify. Email from request: '${email}', OTP from request: '${otp}'`);
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.log(`[VERIFY OTP] User not found for email: '${email}'`);
+      return next(ApiError.notFound('User not found'));
+    }
+    console.log(`[VERIFY OTP] Found user. _id: ${user._id}, isVerified: ${user.isVerified}, db_otp: '${user.otp}', db_otpExpiry: ${user.otpExpiry}, now: ${new Date().toISOString()}`);
+
+    if (user.isVerified) {
+      console.log('[VERIFY OTP] Failed: User already verified');
+      return next(ApiError.badRequest('User is already verified'));
+    }
+
+    if (String(user.otp).trim() !== String(otp).trim()) {
+      console.log(`[VERIFY OTP] Failed: OTP mismatch. Expected '${String(user.otp).trim()}', got '${String(otp).trim()}'`);
+      return next(ApiError.badRequest('Invalid OTP'));
+    }
+
+    if (new Date(user.otpExpiry).getTime() < Date.now()) {
+      console.log(`[VERIFY OTP] Failed: OTP expired. Expiry was ${new Date(user.otpExpiry).toISOString()}`);
+      return next(ApiError.badRequest('OTP has expired'));
+    }
+
+    console.log('[VERIFY OTP] Success! User verified.');
+
+    // Verify user
+    user.isVerified = true;
+    user.otp = null;
+    user.otpExpiry = null;
+    
     // Generate tokens
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
@@ -53,10 +124,10 @@ exports.register = async (req, res, next) => {
 
     setRefreshCookie(res, refreshToken);
 
-    const response = new ApiResponse(201, {
+    const response = new ApiResponse(200, {
       user: { _id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
       accessToken,
-    }, 'Registration successful');
+    }, 'Email verified and logged in successfully');
 
     res.status(response.statusCode).json(response);
   } catch (error) {
@@ -67,18 +138,28 @@ exports.register = async (req, res, next) => {
 // LOGIN
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    console.log('Login attempt:', { email, passwordLength: password?.length });
+    password = password?.trim();
+    email = email?.trim().toLowerCase();
 
-    // Find user
-    const user = await User.findOne({ email });
+    // Find user (case-insensitive)
+    const user = await User.findOne({ email: new RegExp('^' + email + '$', 'i') });
     if (!user) {
-      return next(ApiError.unauthorized('Invalid credentials'));
+      console.log('Login failed: user not found');
+      return next(ApiError.unauthorized('Invalid credentials: user not found'));
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      return next(ApiError.unauthorized('Invalid credentials'));
+      console.log('Login failed: password mismatch');
+      return next(ApiError.unauthorized('Invalid credentials: password mismatch'));
+    }
+
+    if (!user.isVerified) {
+      console.log('Login failed: user not verified');
+      return next(ApiError.forbidden('Please verify your email address to login.'));
     }
 
     // Check if vendor is approved
@@ -87,9 +168,7 @@ exports.login = async (req, res, next) => {
       if (!vendor || vendor.status === 'banned') {
         return next(ApiError.forbidden('Vendor account is banned or not approved'));
       }
-      if (vendor.status === 'pending') {
-        return next(ApiError.forbidden('Vendor account is pending approval'));
-      }
+      // Allow pending vendors to login so they can view their status in the dashboard
     }
 
     if (!user.isActive) {
@@ -209,7 +288,7 @@ exports.forgotPassword = async (req, res, next) => {
     try {
       await sendEmail(user.email, 'ShopZone Password Reset', message);
     } catch (err) {
-      console.log('Email send failed:', err.message);
+      // Email send failed silently
     }
 
     res.status(200).json({ message: 'If email exists, reset link sent' });

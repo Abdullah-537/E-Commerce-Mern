@@ -60,10 +60,10 @@ exports.getProduct = async (req, res, next) => {
       return next(ApiError.notFound('Product not found'));
     }
 
-    // Get variants
-    const variants = await ProductVariant.find({ productId: product._id });
+    // Get variant combinations
+    const combinations = await ProductVariant.find({ productId: product._id });
 
-    res.status(200).json({ success: true, data: { ...product.toObject(), variants } });
+    res.status(200).json({ success: true, data: { ...product.toObject(), combinations } });
   } catch (error) {
     next(error);
   }
@@ -150,6 +150,22 @@ exports.createProduct = async (req, res, next) => {
     const baseSlug = slugify(name, { lower: true, strict: true });
     const slug = `${baseSlug}-${Date.now()}`;
 
+    // Handle variant flat array and images
+    let productVariantsArray = [];
+    if (req.body.productVariants && req.body.productVariants.length > 0) {
+      for (const v of req.body.productVariants) {
+        let imageUrl = v.image || '';
+        if (imageUrl.startsWith('data:image')) {
+          imageUrl = await uploadImage(imageUrl, 'shopzone/variants');
+        }
+        productVariantsArray.push({
+          name: v.name,
+          value: v.value,
+          image: imageUrl
+        });
+      }
+    }
+
     const product = await Product.create({
       vendorId: vendor._id,
       name,
@@ -162,6 +178,7 @@ exports.createProduct = async (req, res, next) => {
       images: uploadedImages,
       stock: stock || 0,
       hasVariants: hasVariants || false,
+      variants: productVariantsArray,
       tags: tags || [],
       status: status || 'published',
     });
@@ -169,14 +186,30 @@ exports.createProduct = async (req, res, next) => {
     // Create variants if any
     if (variants && variants.length > 0) {
       for (const v of variants) {
-        await ProductVariant.create({
+        const variantData = {
           productId: product._id,
           attributes: v.attributes,
           price: v.price || price,
           stock: v.stock || 0,
-          sku: v.sku || null,
-        });
+        };
+        if (v.sku) variantData.sku = v.sku;
+        await ProductVariant.create(variantData);
       }
+    }
+
+    const { createNotification } = require('../utils/notificationHelper');
+    const User = require('../models/User');
+    
+    // Find users who have favorited this vendor
+    const followers = await User.find({ favoriteStores: vendor._id });
+    for (const follower of followers) {
+      await createNotification({
+        userId: follower._id,
+        title: 'New Product from ' + vendor.businessName,
+        message: `${vendor.businessName} just added a new product: ${product.name}!`,
+        type: 'product',
+        link: `/product/${product._id}`
+      });
     }
 
     res.status(201).json({ success: true, data: product, message: 'Product created' });
@@ -228,7 +261,41 @@ exports.updateProduct = async (req, res, next) => {
       product.slug = slugify(req.body.name, { lower: true, strict: true }) + '-' + Date.now();
     }
 
+    // Handle embedded variants (names, values, images)
+    if (req.body.productVariants !== undefined) {
+      let productVariantsArray = [];
+      for (const v of req.body.productVariants) {
+        let imageUrl = v.image || '';
+        if (imageUrl.startsWith('data:image')) {
+          imageUrl = await uploadImage(imageUrl, 'shopzone/variants');
+        }
+        productVariantsArray.push({
+          name: v.name,
+          value: v.value,
+          image: imageUrl
+        });
+      }
+      product.variants = productVariantsArray;
+    }
+
     await product.save();
+
+    // Recreate combinations in ProductVariant
+    if (req.body.variants && req.body.hasVariants) {
+      await ProductVariant.deleteMany({ productId: product._id });
+      for (const v of req.body.variants) {
+        const variantData = {
+          productId: product._id,
+          attributes: v.attributes,
+          price: v.price || product.price,
+          stock: v.stock || 0,
+        };
+        if (v.sku) variantData.sku = v.sku;
+        await ProductVariant.create(variantData);
+      }
+    } else if (req.body.hasVariants === false) {
+      await ProductVariant.deleteMany({ productId: product._id });
+    }
     res.status(200).json({ success: true, data: product, message: 'Product updated' });
   } catch (error) {
     next(error);
@@ -268,8 +335,9 @@ exports.getProductReviews = async (req, res, next) => {
       .populate('customerId', 'name avatar')
       .sort({ createdAt: -1 });
 
+    const mongoose = require('mongoose');
     const stats = await Review.aggregate([
-      { $match: { productId: require('mongoose').Types.ObjectId(req.params.id) } },
+      { $match: { productId: new mongoose.Types.ObjectId(req.params.id) } },
       { $group: { _id: '$rating', count: { $sum: 1 } } }
     ]);
 
@@ -294,8 +362,11 @@ exports.addReview = async (req, res, next) => {
       customerId: req.user._id,
       'items.productId': product._id,
       status: 'delivered',
-      otpVerified: true,
     });
+
+    if (!hasOrder) {
+      return next(ApiError.forbidden('You must have purchased and received this product to leave a review.'));
+    }
 
     // Check for duplicate review
     const existing = await Review.findOne({ customerId: req.user._id, productId: product._id });
@@ -318,6 +389,19 @@ exports.addReview = async (req, res, next) => {
     product.rating = parseFloat(avgRating.toFixed(1));
     product.reviewCount = reviews.length;
     await product.save();
+
+    const { createNotification } = require('../utils/notificationHelper');
+    const Vendor = require('../models/Vendor');
+    const vendorRecord = await Vendor.findById(product.vendorId);
+    if (vendorRecord) {
+      await createNotification({
+        userId: vendorRecord.userId,
+        title: 'New Product Review',
+        message: `Someone left a ${rating}-star review on your product ${product.name}.`,
+        type: 'review',
+        link: `/product/${product._id}`
+      });
+    }
 
     res.status(201).json({ success: true, data: review, message: 'Review added' });
   } catch (error) {

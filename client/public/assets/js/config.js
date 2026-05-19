@@ -18,7 +18,7 @@
             phoenixTheme: "light",
             phoenixNavbarTopStyle: "default",
             phoenixNavbarVerticalStyle: "default",
-            phoenixNavbarPosition: "vertical",
+            phoenixNavbarPosition: "horizontal",
             phoenixNavbarTopShape: "default",
             phoenixIsRTL: !1,
             phoenixSupportChat: !0

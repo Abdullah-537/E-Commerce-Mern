@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
@@ -8,6 +8,9 @@ export default function Vendors() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
+  const [rejectingVendorId, setRejectingVendorId] = useState(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     api.get('/vendor').then(res => setVendors(res.data.data || [])).catch(() => {}).finally(() => setLoading(false))
@@ -20,6 +23,25 @@ export default function Vendors() {
       setVendors(vendors.map(v => v._id === id ? { ...v, status } : v))
       toast.success(`Vendor ${status}`)
     } catch (err) { toast.error('Update failed') }
+  }
+
+  const handleReject = async (id) => {
+    if (!rejectReason.trim()) {
+      toast.warning('Please provide a reason for rejection')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await api.put(`/vendor/${id}/reject`, { reason: rejectReason })
+      setVendors(vendors.map(v => v._id === id ? { ...v, status: 'rejected' } : v))
+      toast.success('Vendor rejected')
+      setRejectingVendorId(null)
+      setRejectReason('')
+    } catch (err) {
+      toast.error('Rejection failed')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const counts = {
@@ -106,7 +128,8 @@ export default function Vendors() {
                 </thead>
                 <tbody>
                   {filtered.map(v => (
-                    <tr key={v._id}>
+                    <React.Fragment key={v._id}>
+                    <tr>
                       <td className="align-middle ps-3">
                         <Link to={`/admin/vendors/${v._id}`} className="d-flex align-items-center gap-2 text-decoration-none">
                           <div className="avatar avatar-s">
@@ -120,7 +143,6 @@ export default function Vendors() {
                           </div>
                           <div>
                             <span className="fw-semibold text-body-emphasis d-block">{v.businessName}</span>
-                            {v.slug && <span className="text-body-quaternary fs-10">/{v.slug}</span>}
                           </div>
                         </Link>
                       </td>
@@ -138,7 +160,7 @@ export default function Vendors() {
                               <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => updateStatus(v._id, 'approved')} title="Approve">
                                 <span className="fas fa-check"></span>
                               </button>
-                              <button className="btn btn-phoenix-danger btn-sm px-2 py-0 fs-10" onClick={() => updateStatus(v._id, 'banned')} title="Reject">
+                              <button className="btn btn-phoenix-danger btn-sm px-2 py-0 fs-10" onClick={() => setRejectingVendorId(v._id)} title="Reject">
                                 <span className="fas fa-times"></span>
                               </button>
                             </>
@@ -159,6 +181,25 @@ export default function Vendors() {
                         </div>
                       </td>
                     </tr>
+                    {rejectingVendorId === v._id && (
+                      <tr key={`reject-${v._id}`}>
+                        <td colSpan={7} className="p-3 bg-light rounded border border-translucent">
+                          <div className="d-flex align-items-center gap-2">
+                            <input 
+                              type="text" 
+                              className="form-control form-control-sm" 
+                              placeholder="Reason for rejection (sent to vendor via email)" 
+                              value={rejectReason} 
+                              onChange={(e) => setRejectReason(e.target.value)}
+                              disabled={submitting}
+                            />
+                            <button className="btn btn-sm btn-secondary" onClick={() => { setRejectingVendorId(null); setRejectReason(''); }} disabled={submitting}>Cancel</button>
+                            <button className="btn btn-sm btn-danger" onClick={() => handleReject(v._id)} disabled={submitting}>{submitting ? 'Rejecting...' : 'Reject'}</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

@@ -58,10 +58,10 @@ export default function AdminOrderDetail() {
                   {order.items.map((item, i) => (
                     <tr key={i}>
                       <td>
-                        <div className="d-flex align-items-center gap-2">
-                          {item.productImage && <img src={item.productImage} alt="" width={40} height={40} className="rounded" />}
-                          <span>{item.productName}</span>
-                        </div>
+                        <Link to={`/product/${item.productId}`} className="d-flex align-items-center gap-2 text-decoration-none">
+                          {item.productImage && <img src={item.productImage} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} className="rounded" />}
+                          <span className="text-body-emphasis fw-semibold">{item.productName}</span>
+                        </Link>
                       </td>
                       <td>PKR {item.price}</td>
                       <td>{item.quantity}</td>
@@ -83,12 +83,39 @@ export default function AdminOrderDetail() {
             </div>
           </div>
           <div className="card border-0 shadow-sm">
-            <div className="card-header bg-transparent"><h5 className="mb-0">Update Status</h5></div>
+            <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+              <h5 className="mb-0 text-body-emphasis"><span className="fas fa-truck-fast me-2 text-primary"></span>Fulfillment Status</h5>
+            </div>
             <div className="card-body">
-              <div className="btn-group">
-                {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => (
-                  <button key={s} className={`btn btn-sm ${order.status === s ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => updateStatus(s)} disabled={updating || order.status === s}>{s}</button>
-                ))}
+              <div className="d-flex flex-column gap-2">
+                {[
+                  { id: 'pending', label: 'Pending', icon: 'fas fa-clock', color: 'warning' },
+                  { id: 'processing', label: 'Processing', icon: 'fas fa-box-open', color: 'info' },
+                  { id: 'shipped', label: 'Shipped', icon: 'fas fa-truck', color: 'primary' },
+                  { id: 'delivered', label: 'Delivered', icon: 'fas fa-check-circle', color: 'success' },
+                  { id: 'cancelled', label: 'Cancelled', icon: 'fas fa-times-circle', color: 'danger' },
+                  ...(order.status === 'refund_requested' ? [{ id: 'refund_requested', label: 'Refund Requested', icon: 'fas fa-undo', color: 'warning' }] : []),
+                  ...(order.status === 'refund_approved' ? [{ id: 'refund_approved', label: 'Refund Approved', icon: 'fas fa-check', color: 'info' }] : []),
+                  ...(order.status === 'refunded' ? [{ id: 'refunded', label: 'Refunded', icon: 'fas fa-money-bill-wave', color: 'danger' }] : []),
+                ].map(s => {
+                  const isActive = order.status === s.id;
+                  const isLocked = ['delivered', 'cancelled', 'refund_requested', 'refund_approved', 'refunded'].includes(order.status);
+                  return (
+                    <button 
+                      key={s.id} 
+                      className={`btn btn-sm d-flex align-items-center justify-content-between px-3 py-2 ${isActive ? `btn-${s.color} text-white` : `btn-outline-${s.color} bg-white`}`}
+                      onClick={() => updateStatus(s.id)} 
+                      disabled={updating || isActive || (isLocked && !isActive)}
+                      style={{ transition: 'all 0.2s' }}
+                    >
+                      <div className="d-flex align-items-center gap-2">
+                        <span className={`${s.icon} fs-9`}></span>
+                        <span className="fw-semibold fs-9">{s.label}</span>
+                      </div>
+                      {isActive && <span className="fas fa-check fs-9"></span>}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

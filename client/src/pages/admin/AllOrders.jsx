@@ -114,7 +114,7 @@ export default function AllOrders() {
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end">Total</th>
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Payment</th>
                     <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Status</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3"></th>
+                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -132,10 +132,10 @@ export default function AllOrders() {
                         <div className="d-flex align-items-center gap-2">
                           <div className="avatar avatar-s">
                             <div className="avatar-name rounded-circle bg-primary-subtle text-primary">
-                              <span className="fs-10">{o.userId?.name?.charAt(0).toUpperCase() || '?'}</span>
+                              <span className="fs-10">{o.customerId?.name?.charAt(0).toUpperCase() || '?'}</span>
                             </div>
                           </div>
-                          <span className="text-body-emphasis fw-semibold fs-9">{o.userId?.name || 'Unknown'}</span>
+                          <span className="text-body-emphasis fw-semibold fs-9">{o.customerId?.name || 'Unknown'}</span>
                         </div>
                       </td>
                       <td className="align-middle text-body-tertiary fs-10">
@@ -158,9 +158,14 @@ export default function AllOrders() {
                         </span>
                       </td>
                       <td className="align-middle text-end pe-3">
-                        <Link to={`/admin/orders/${o._id}`} className="btn btn-phoenix-secondary btn-sm px-2 py-0">
-                          <span className="fas fa-eye fs-10"></span>
-                        </Link>
+                        <div className="btn-group">
+                          <Link to={`/admin/orders/${o._id}`} className="btn btn-sm btn-phoenix-primary px-2" title="View">
+                            <span className="fas fa-eye fs-10"></span>
+                          </Link>
+                          <Link to={`/admin/orders/${o._id}/invoice`} className="btn btn-sm btn-phoenix-info px-2" title="Invoice">
+                            <span className="fas fa-file-invoice fs-10"></span>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

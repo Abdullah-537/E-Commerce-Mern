@@ -8,20 +8,38 @@ export default function Refunds() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
 
+  const [actionRefundId, setActionRefundId] = useState(null);
+  const [actionType, setActionType] = useState(null); // 'approve' or 'reject'
+  const [actionNote, setActionNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     api.get('/refunds').then(res => setRefunds(res.data.data || [])).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
-  const approve = async (id) => {
-    try { await api.put(`/refunds/${id}/approve`); setRefunds(refunds.map(r => r._id === id ? { ...r, status: 'approved' } : r)); toast.success('Approved') } catch { toast.error('Failed') }
-  }
-  const reject = async (id) => {
-    try { await api.put(`/refunds/${id}/reject`); setRefunds(refunds.map(r => r._id === id ? { ...r, status: 'rejected' } : r)); toast.success('Rejected') } catch { toast.error('Failed') }
+  const handleAction = async () => {
+    if (!actionType || !actionRefundId) return;
+    if (actionType === 'reject' && !actionNote.trim()) {
+      toast.error('Reason is required for rejection');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.put(`/refunds/${actionRefundId}/${actionType}`, { adminNote: actionNote });
+      setRefunds(refunds.map(r => r._id === actionRefundId ? { ...r, status: actionType === 'approve' ? 'approved' : 'rejected' } : r));
+      toast.success(actionType === 'approve' ? 'Approved' : 'Rejected');
+      setActionRefundId(null);
+      setActionNote('');
+    } catch {
+      toast.error('Failed to process request');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const filtered = refunds.filter(r => filter === 'all' ? true : r.status === filter)
-  const counts = { all: refunds.length, pending: refunds.filter(r => r.status === 'pending').length, approved: refunds.filter(r => r.status === 'approved').length, rejected: refunds.filter(r => r.status === 'rejected').length }
-  const statusColors = { pending: 'warning', approved: 'success', rejected: 'danger' }
+  const counts = { all: refunds.length, pending: refunds.filter(r => r.status === 'pending').length, approved: refunds.filter(r => r.status === 'approved').length, rejected: refunds.filter(r => r.status === 'rejected').length, refunded: refunds.filter(r => r.status === 'refunded').length }
+  const statusColors = { pending: 'warning', approved: 'info', rejected: 'danger', refunded: 'success' }
 
   return (
     <div>
@@ -33,7 +51,7 @@ export default function Refunds() {
       </div>
 
       <ul className="nav nav-underline mb-4 fs-9 border-bottom border-translucent">
-        {[{ key: 'all', label: 'All' }, { key: 'pending', label: 'Pending' }, { key: 'approved', label: 'Approved' }, { key: 'rejected', label: 'Rejected' }].map(tab => (
+        {[{ key: 'all', label: 'All' }, { key: 'pending', label: 'Pending' }, { key: 'approved', label: 'Approved' }, { key: 'refunded', label: 'Refunded' }, { key: 'rejected', label: 'Rejected' }].map(tab => (
           <li className="nav-item" key={tab.key}>
             <button className={`nav-link ${filter === tab.key ? 'active fw-semibold' : 'text-body-tertiary'}`} onClick={() => setFilter(tab.key)}>
               {tab.label} <span className="text-body-tertiary fw-semibold ms-1">({counts[tab.key]})</span>
@@ -41,6 +59,28 @@ export default function Refunds() {
           </li>
         ))}
       </ul>
+
+      {actionRefundId && (
+        <div className="card mb-4 border-primary">
+          <div className="card-body">
+            <h5 className="mb-3">{actionType === 'approve' ? 'Approve Refund' : 'Reject Refund'}</h5>
+            <textarea
+              className="form-control mb-3"
+              rows="2"
+              placeholder={actionType === 'approve' ? "Optional approval note..." : "Required reason for rejection..."}
+              value={actionNote}
+              onChange={e => setActionNote(e.target.value)}
+              disabled={submitting}
+            ></textarea>
+            <div className="d-flex justify-content-end gap-2">
+              <button className="btn btn-sm btn-outline-secondary" onClick={() => setActionRefundId(null)} disabled={submitting}>Cancel</button>
+              <button className={`btn btn-sm ${actionType === 'approve' ? 'btn-success' : 'btn-danger'}`} onClick={handleAction} disabled={submitting}>
+                {submitting ? 'Processing...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card border-translucent">
         <div className="card-body p-0">
@@ -70,8 +110,27 @@ export default function Refunds() {
                       <td className="align-middle text-end pe-3">
                         {r.status === 'pending' && (
                           <div className="d-flex gap-1 justify-content-end">
-                            <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => approve(r._id)}><span className="fas fa-check me-1"></span>Approve</button>
-                            <button className="btn btn-phoenix-danger btn-sm px-2 py-0 fs-10" onClick={() => reject(r._id)}><span className="fas fa-times me-1"></span>Reject</button>
+                            <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => {
+                              setActionRefundId(r._id);
+                              setActionType('approve');
+                              setActionNote('');
+                            }}><span className="fas fa-check me-1"></span>Approve</button>
+                            
+                            <button className="btn btn-phoenix-danger btn-sm px-2 py-0 fs-10" onClick={() => {
+                              setActionRefundId(r._id);
+                              setActionType('reject');
+                              setActionNote('');
+                            }}><span className="fas fa-times me-1"></span>Reject</button>
+                          </div>
+                        )}
+                        {r.status === 'approved' && (
+                          <div className="d-flex justify-content-end">
+                            <button className="btn btn-phoenix-primary btn-sm px-2 py-0 fs-10" onClick={() => {
+                              api.put(`/refunds/${r._id}/mark-refunded`).then(() => {
+                                setRefunds(refunds.map(ref => ref._id === r._id ? { ...ref, status: 'refunded' } : ref));
+                                toast.success('Marked as fully refunded');
+                              }).catch(err => toast.error(err.response?.data?.message || 'Failed'));
+                            }}><span className="fas fa-money-bill-wave me-1"></span>Mark Refunded</button>
                           </div>
                         )}
                       </td>

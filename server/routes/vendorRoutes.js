@@ -5,8 +5,11 @@ const vendorController = require('../controllers/vendorController');
 const { protect } = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
-// Public: vendor storefront
+// Public: vendor storefront by slug
 router.get('/store/:slug', vendorController.getStorefront);
+
+// Public: get vendor info by ID (for vendor store page)
+router.get('/public/:id', vendorController.getPublicVendorById);
 
 // Vendor registration
 router.post('/register', [
@@ -26,6 +29,12 @@ router.get('/profile', roleMiddleware('vendor'), vendorController.getProfile);
 // Vendor: update own profile
 router.put('/profile', roleMiddleware('vendor'), vendorController.updateProfile);
 
+// Customer: rate vendor
+router.post('/:id/rate', roleMiddleware('customer'), vendorController.rateVendor);
+
+// Customer: report vendor
+router.post('/:id/report', roleMiddleware('customer'), vendorController.reportVendor);
+
 // Admin: get all vendors
 router.get('/', roleMiddleware('admin'), vendorController.getAllVendors);
 
@@ -37,6 +46,9 @@ router.put('/:id/approve', roleMiddleware('admin'), vendorController.approveVend
 
 // Admin: ban vendor
 router.put('/:id/ban', roleMiddleware('admin'), vendorController.banVendor);
+
+// Admin: reject vendor
+router.put('/:id/reject', roleMiddleware('admin'), vendorController.rejectVendor);
 
 // Admin: set commission rate
 router.put('/:id/commission', roleMiddleware('admin'), vendorController.setCommission);

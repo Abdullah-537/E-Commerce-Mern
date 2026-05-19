@@ -20,17 +20,27 @@ const setRefreshCookie = (res, token) => {
 // REGISTER VENDOR
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, phone, businessName, businessEmail, businessPhone, bankName, accountNumber, accountTitle } = req.body;
+    let { name, email, password, phone, businessName, businessEmail, businessPhone, bankName, accountNumber, accountTitle } = req.body;
+    email = email?.trim().toLowerCase();
+    businessEmail = businessEmail?.trim().toLowerCase();
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(ApiError.conflict('Email already registered'));
+      if (existingUser.isVerified) {
+        return next(ApiError.conflict('Email already registered'));
+      }
+      await User.deleteOne({ email });
+      await Vendor.deleteOne({ userId: existingUser._id });
     }
 
     // Create user
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     const user = await User.create({
       name,
@@ -38,6 +48,9 @@ exports.register = async (req, res, next) => {
       passwordHash,
       phone,
       role: 'vendor',
+      isVerified: false,
+      otp,
+      otpExpiry,
     });
 
     // Create vendor with pending status
@@ -57,24 +70,37 @@ exports.register = async (req, res, next) => {
       commissionRate,
     });
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id, user.role);
-    const refreshToken = generateRefreshToken(user._id);
+    // Send email
+    const sendEmail = require('../utils/sendEmail');
+    const message = `
+      <h2>Welcome to ShopZone Vendor Portal!</h2>
+      <p>Your verification code is: <strong>${otp}</strong></p>
+      <p>This code will expire in 10 minutes.</p>
+    `;
+    await sendEmail(user.email, 'ShopZone - Verify Your Vendor Account', message);
 
-    const hashedRefresh = await bcrypt.hash(refreshToken, 12);
-    user.refreshToken = hashedRefresh;
-    await user.save();
+    // Notify admin
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@shopzone.pk';
+    const adminMessage = `
+      <h2>New Vendor Registration</h2>
+      <p>A new vendor has registered and is awaiting approval.</p>
+      <p><strong>Business Name:</strong> ${businessName}</p>
+      <p><strong>Email:</strong> ${businessEmail}</p>
+    `;
+    await sendEmail(adminEmail, 'New Vendor Registration - ShopZone', adminMessage);
 
-    setRefreshCookie(res, refreshToken);
+    const { createNotification } = require('../utils/notificationHelper');
+    await createNotification({
+      title: 'New Vendor Registration',
+      message: `${businessName} has registered and is awaiting approval.`,
+      type: 'vendor',
+      link: '/admin/vendors'
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Vendor registration submitted. Pending approval.',
-      data: {
-        user: { _id: user._id, name: user.name, email: user.email, role: user.role },
-        vendor: { _id: vendor._id, businessName: vendor.businessName, status: vendor.status },
-        accessToken,
-      },
+      message: 'Registration successful. Please check your email for the OTP.',
+      data: { email: user.email },
     });
   } catch (error) {
     next(error);
@@ -209,6 +235,31 @@ exports.banVendor = async (req, res, next) => {
   }
 };
 
+// REJECT VENDOR (admin)
+exports.rejectVendor = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const vendor = await Vendor.findById(req.params.id).populate('userId');
+    if (!vendor) {
+      return next(ApiError.notFound('Vendor not found'));
+    }
+
+    if (!reason) {
+      return next(ApiError.badRequest('Rejection reason is required'));
+    }
+
+    vendor.status = 'rejected';
+    await vendor.save();
+
+    const sendEmail = require('../utils/sendEmail');
+    await sendEmail(vendor.userId.email, 'Vendor Application Rejected - ShopZone', `<p>Your vendor application was rejected.</p><p>Reason: ${reason}</p>`);
+
+    res.status(200).json({ success: true, message: 'Vendor rejected' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // SET COMMISSION (admin)
 exports.setCommission = async (req, res, next) => {
   try {
@@ -241,7 +292,9 @@ exports.getEarnings = async (req, res, next) => {
       }
     }
 
-    const commissions = await Commission.find({ vendorId }).sort({ createdAt: -1 });
+    const commissions = await Commission.find({ vendorId })
+      .populate('orderId', 'items createdAt _id')
+      .sort({ createdAt: -1 });
     const totalEarnings = commissions.reduce((sum, c) => sum + c.netAmount, 0);
     const pendingCommission = commissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.commissionAmount, 0);
     const settledCommission = commissions.filter(c => c.status === 'settled').reduce((sum, c) => sum + c.commissionAmount, 0);
@@ -264,12 +317,136 @@ exports.getEarnings = async (req, res, next) => {
 // GET STOREFRONT (public)
 exports.getStorefront = async (req, res, next) => {
   try {
-    const vendor = await Vendor.findOne({ slug: req.params.slug, status: 'approved', isOpen: true });
+    const isObjectId = require('mongoose').Types.ObjectId.isValid(req.params.slug);
+    const query = { status: 'approved' };
+    
+    if (isObjectId) {
+      query.$or = [{ slug: req.params.slug }, { _id: req.params.slug }];
+    } else {
+      query.slug = req.params.slug;
+    }
+
+    const vendor = await Vendor.findOne(query);
     if (!vendor) {
       return next(ApiError.notFound('Store not found'));
     }
 
     res.status(200).json({ success: true, data: vendor });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET VENDOR BY ID (public - for vendor store page)
+exports.getPublicVendorById = async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id).populate('userId', 'name avatar');
+    if (!vendor || vendor.status !== 'approved') {
+      return next(ApiError.notFound('Vendor not found'));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: vendor._id,
+        businessName: vendor.businessName,
+        description: vendor.description,
+        logo: vendor.logo,
+        businessAddress: vendor.businessAddress,
+        rating: vendor.rating,
+        ratingCount: vendor.ratingCount,
+        isOpen: vendor.isOpen,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// RATE VENDOR (customer)
+exports.rateVendor = async (req, res, next) => {
+  try {
+    const { rating } = req.body;
+    const vendorId = req.params.id;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return next(ApiError.badRequest('Rating must be between 1 and 5'));
+    }
+
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return next(ApiError.notFound('Vendor not found'));
+    }
+
+    // Must have ordered and received from this vendor
+    const hasOrder = await Order.findOne({
+      customerId: req.user._id,
+      'items.vendorId': vendor._id,
+      status: 'delivered'
+    });
+
+    if (!hasOrder) {
+      return next(ApiError.forbidden('You must have purchased and received an item from this vendor to leave a rating.'));
+    }
+
+    // Check if already rated
+    const existingRatingIndex = vendor.ratings.findIndex(r => r.customerId.toString() === req.user._id.toString());
+    
+    if (existingRatingIndex >= 0) {
+      return next(ApiError.conflict('You have already submitted a rating for this vendor.'));
+    }
+
+    // Add rating
+    vendor.ratings.push({ customerId: req.user._id, rating });
+
+    // Recalculate average
+    const totalRating = vendor.ratings.reduce((sum, r) => sum + r.rating, 0);
+    vendor.rating = parseFloat((totalRating / vendor.ratings.length).toFixed(1));
+    vendor.reviewCount = vendor.ratings.length;
+
+    await vendor.save();
+
+    res.status(200).json({ success: true, message: 'Rating submitted successfully', data: { rating: vendor.rating, reviewCount: vendor.reviewCount } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// REPORT VENDOR (customer)
+exports.reportVendor = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const vendorId = req.params.id;
+
+    if (!reason || reason.trim() === '') {
+      return next(ApiError.badRequest('Reason is required'));
+    }
+
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return next(ApiError.notFound('Vendor not found'));
+    }
+
+    const Complaint = require('../models/Complaint');
+    const complaint = await Complaint.create({
+      customerId: req.user._id,
+      vendorId: vendor._id,
+      reason,
+    });
+
+    // Notify admin
+    const sendEmail = require('../utils/sendEmail');
+    await sendEmail(process.env.ADMIN_EMAIL || 'admin@shopzone.pk', 'New Vendor Complaint', `A customer has reported vendor ${vendor.businessName}. Reason: ${reason}`);
+    
+    const { createNotification } = require('../utils/notificationHelper');
+    await createNotification({
+      title: 'New Vendor Complaint',
+      message: `A customer has reported vendor ${vendor.businessName}.`,
+      type: 'complaint',
+      link: '/admin/complaints'
+    });
+
+    res.status(201).json({ success: true, message: 'Vendor reported successfully', data: complaint });
   } catch (error) {
     next(error);
   }

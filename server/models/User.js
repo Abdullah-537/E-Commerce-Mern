@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
   refreshToken: { type: String, default: null },
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpiry: { type: Date, default: null },
+  otp: { type: String, default: null },
+  otpExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
 userSchema.methods.toJSON = function () {

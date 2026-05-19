@@ -131,14 +131,14 @@ export default function OrderTracking() {
                       {order.items.map((item, i) => (
                         <tr key={i} className="border-bottom border-translucent">
                           <td className="ps-4 py-3">
-                            <div className="d-flex align-items-center gap-3">
-                              <div className="border border-translucent rounded-3 p-1 bg-white" style={{ width: 64, height: 64 }}>
-                                <img src={item.productImage || '/assets/img/products/1.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                              </div>
-                              <Link to={`/product/${item.productId}`} className="text-body-emphasis fw-semibold text-decoration-none">
-                                {item.productName}
+                              <Link to={`/product/${item.productId}`} className="d-flex align-items-center gap-3 text-decoration-none">
+                                <div className="border border-translucent rounded-3 p-1 bg-white" style={{ width: 64, height: 64 }}>
+                                  <img src={item.productImage || '/assets/img/products/1.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                </div>
+                                <span className="text-body-emphasis fw-semibold">
+                                  {item.productName}
+                                </span>
                               </Link>
-                            </div>
                           </td>
                           <td className="align-middle text-center fw-semibold">{item.quantity}</td>
                           <td className="align-middle text-end text-body-tertiary">PKR {item.price?.toLocaleString()}</td>

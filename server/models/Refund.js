@@ -6,7 +6,7 @@ const refundSchema = new mongoose.Schema({
   vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true },
   reason: { type: String, required: true },
   amount: { type: Number, required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'refunded'], default: 'pending' },
   adminNote: { type: String, default: null },
   requestedAt: { type: Date, default: Date.now },
   resolvedAt: { type: Date, default: null },

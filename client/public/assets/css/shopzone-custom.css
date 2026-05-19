@@ -1,0 +1,146 @@
+/* ShopZone Custom Overrides */
+
+/* ── Force NO sidebar layout ── */
+.main {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  width: 100% !important;
+  transition: none !important;
+}
+
+body .navbar-vertical {
+  display: none !important;
+}
+
+/* ── Swiper Navigation Arrows ── */
+/* Hide default Swiper arrow character */
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  display: none !important;
+  content: "" !important;
+  font-size: 0 !important;
+}
+
+/* Style swiper nav buttons */
+.swiper-nav .swiper-button-next,
+.swiper-nav .swiper-button-prev {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: var(--phoenix-emphasis-bg, #fff);
+  border: 1px solid var(--phoenix-border-color-translucent, #e3e6ed);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swiper-nav .swiper-button-next:hover,
+.swiper-nav .swiper-button-prev:hover {
+  background: var(--phoenix-primary, #3874ff);
+  border-color: var(--phoenix-primary, #3874ff);
+  box-shadow: 0 4px 12px rgba(56, 116, 255, 0.25);
+}
+
+.swiper-nav .swiper-button-next:hover .nav-icon,
+.swiper-nav .swiper-button-prev:hover .nav-icon {
+  color: #fff;
+}
+
+.swiper-nav .nav-icon {
+  font-size: 0.75rem;
+  color: var(--phoenix-body-color, #525b75);
+  line-height: 1;
+}
+
+/* ── Product Card Overflow Fixes ── */
+.product-card h3 {
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-card .line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Ensure product card images don't overflow ── */
+.product-card .border img.img-fluid {
+  max-height: 220px;
+  object-fit: contain;
+  width: 100%;
+  padding: 0.5rem;
+}
+
+/* ── Fix wishlist button visibility and styling ── */
+.product-card .btn-wish {
+  opacity: 1 !important;
+  z-index: 2;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #e3e6ed;
+  padding: 0;
+  font-size: 0.85rem;
+  color: #8a94ad;
+  transition: all 0.2s ease;
+}
+
+.product-card .btn-wish:hover {
+  background: #e63757;
+  border-color: #e63757;
+  color: #fff;
+}
+
+/* ── Product details ── */
+.product-details-img-container {
+  min-height: 450px;
+}
+
+.product-details-img-container img {
+  max-height: 480px;
+  object-fit: contain;
+}
+
+/* ── Quantity counter styling ── */
+.input-spin-none::-webkit-inner-spin-button,
+.input-spin-none::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input-spin-none {
+  -moz-appearance: textfield;
+}
+
+/* ── Recent Orders card overflow fix ── */
+.table-responsive .table td,
+.table-responsive .table th {
+  white-space: nowrap;
+}
+
+/* ── Profile Badges ── */
+.badge-profile {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0.35em 0.85em;
+  border-radius: 0.375rem;
+}
+
+/* ── Cursor pointer utility ── */
+[style*="cursor: pointer"] {
+  cursor: pointer !important;
+}

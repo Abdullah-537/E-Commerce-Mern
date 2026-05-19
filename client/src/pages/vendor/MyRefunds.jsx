@@ -24,9 +24,9 @@ export default function MyRefunds() {
         <div className="card border-0 shadow-sm">
           <div className="table-responsive">
             <table className="table table-hover mb-0">
-              <thead><tr><th>Order ID</th><th>Customer</th><th>Reason</th><th>Amount</th><th>Status</th><th>Requested</th></tr></thead>
+              <thead><tr><th>Order ID</th><th>Customer</th><th>Reason</th><th>Amount</th><th>Status</th><th>Requested</th><th>Actions</th></tr></thead>
               <tbody>
-                {refunds.length === 0 ? <tr><td colSpan={6} className="text-center text-muted py-4">No refunds</td></tr> : refunds.map(r => (
+                {refunds.length === 0 ? <tr><td colSpan={7} className="text-center text-muted py-4">No refunds</td></tr> : refunds.map(r => (
                   <tr key={r._id}>
                     <td><a href={`/vendor/orders/${r.orderId?._id}`} className="text-decoration-none">{r.orderId?._id?.slice(-8) || 'N/A'}</a></td>
                     <td>{r.customerId?.name || 'N/A'}</td>
@@ -34,6 +34,31 @@ export default function MyRefunds() {
                     <td>PKR {r.amount}</td>
                     <td><span className={`badge ${r.status === 'approved' ? 'bg-success' : r.status === 'rejected' ? 'bg-danger' : 'bg-warning'}`}>{r.status}</span></td>
                     <td>{new Date(r.requestedAt).toLocaleDateString()}</td>
+                    <td>
+                      {r.status === 'pending' && (
+                        <div className="d-flex gap-1">
+                          <button className="btn btn-sm btn-success px-2 py-0" onClick={async () => {
+                            if (window.confirm('Approve refund?')) {
+                              try {
+                                await api.put(`/refunds/${r._id}/approve`, { adminNote: 'Approved by Vendor' });
+                                toast.success('Refund approved');
+                                fetchRefunds();
+                              } catch(e) { toast.error('Failed to approve'); }
+                            }
+                          }}>Approve</button>
+                          <button className="btn btn-sm btn-danger px-2 py-0" onClick={async () => {
+                            const note = window.prompt('Reason for rejection:');
+                            if (note) {
+                              try {
+                                await api.put(`/refunds/${r._id}/reject`, { adminNote: note });
+                                toast.success('Refund rejected');
+                                fetchRefunds();
+                              } catch(e) { toast.error('Failed to reject'); }
+                            }
+                          }}>Reject</button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -89,7 +89,10 @@ export default function VendorLogin() {
                   {loading ? 'Signing in...' : 'Sign In'}
                 </button>
               </form>
-              <div className="text-center"><Link className="fs-9 fw-bold" to="/vendor/register">Want to sell on ShopZone? Register</Link></div>
+              <div className="text-center">
+                <Link className="fs-9 fw-bold d-block mb-2" to="/vendor/register">Want to sell on ShopZone? Register</Link>
+                <Link className="fs-9 fw-semibold text-body-tertiary" to="/login">Sign in as a customer</Link>
+              </div>
             </div>
           </div>
         </div>

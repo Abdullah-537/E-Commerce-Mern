@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
+import { getProvinces, getCitiesByProvince } from '../../utils/pakistanCities'
 
 export default function ShippingInfo() {
   const [addresses, setAddresses] = useState([])
@@ -89,13 +90,19 @@ export default function ShippingInfo() {
                   <label className="form-label">Phone *</label>
                   <input type="tel" className="form-control" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} required />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">City *</label>
-                  <input type="text" className="form-control" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} required />
-                </div>
-                <div className="col-md-6">
+                <div className="col-md-4">
                   <label className="form-label">Province *</label>
-                  <input type="text" className="form-control" value={form.province} onChange={e => setForm({ ...form, province: e.target.value })} required />
+                  <select className="form-select" value={form.province} onChange={e => setForm({ ...form, province: e.target.value, city: '' })} required>
+                    <option value="">Select Province</option>
+                    {getProvinces().map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label">City *</label>
+                  <select className="form-select" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} required disabled={!form.province}>
+                    <option value="">Select City</option>
+                    {getCitiesByProvince(form.province).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Postal Code *</label>
