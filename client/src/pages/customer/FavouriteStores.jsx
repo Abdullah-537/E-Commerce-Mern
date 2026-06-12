@@ -79,7 +79,7 @@ export default function FavouriteStores() {
                       ({v.ratingCount || Math.floor(Math.random() * 2000)} people rated)
                     </p>
                     <Link
-                      to={`/store/${v.slug}`}
+                      to={`/store/${v.slug || v._id}`}
                       className="btn btn-link p-0 fs-9 fw-semibold text-primary"
                     >
                       Visit Store <span className="fas fa-chevron-right fs-10 ms-1"></span>

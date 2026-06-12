@@ -1,8 +1,14 @@
 const nodemailer = require('nodemailer');
 
+// Strip surrounding quotes that Render may include from .env copy-paste
+const stripQuotes = (str) => str ? str.replace(/^["']|["']$/g, '') : str;
+
 const sendEmail = async (to, subject, html) => {
+  const emailUser = stripQuotes(process.env.EMAIL_USER);
+  const emailPass = stripQuotes(process.env.EMAIL_PASS);
+
   // Check if email credentials are configured
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!emailUser || !emailPass) {
     console.log('\n=== Email (Nodemailer not configured) ===');
     console.log(`To: ${to}`);
     console.log(`Subject: ${subject}`);
@@ -14,17 +20,25 @@ const sendEmail = async (to, subject, html) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: emailUser,
+      pass: emailPass,
     },
+    connectionTimeout: 10000, // 10s connect timeout
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
-  return transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  console.log(`[EMAIL] Sending to: ${to} | Subject: ${subject}`);
+
+  const result = await transporter.sendMail({
+    from: emailUser,
     to,
     subject,
     html,
   });
+
+  console.log(`[EMAIL] Sent successfully. MessageId: ${result.messageId}`);
+  return result;
 };
 
 module.exports = sendEmail;

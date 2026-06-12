@@ -339,7 +339,7 @@ exports.verifyOTP = async (req, res, next) => {
           </table>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/order/${order._id}" style="display: inline-block; padding: 14px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #3182ce; border-radius: 6px; text-decoration: none; box-shadow: 0 4px 6px rgba(49, 130, 206, 0.25); transition: background-color 0.3s;">View Order Status</a>
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/orders/${order._id}/track" style="display: inline-block; padding: 14px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #3182ce; border-radius: 6px; text-decoration: none; box-shadow: 0 4px 6px rgba(49, 130, 206, 0.25); transition: background-color 0.3s;">View Order Status</a>
           </div>
         </div>
         <div style="text-align: center; margin-top: 20px; padding: 20px; color: #a0aec0; font-size: 12px;">
@@ -428,7 +428,7 @@ exports.verifyOTP = async (req, res, next) => {
 
           const targetEmail = vendorRecord.businessEmail || vendorRecord.userId?.email;
           if (targetEmail) {
-            sendEmail(targetEmail, \`New Order Received #${order._id.toString().slice(-8).toUpperCase()} - ShopZone\`, vendorEmailHtml)
+            sendEmail(targetEmail, `New Order Received #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, vendorEmailHtml)
               .catch(err => console.error('Failed to send vendor email:', err));
           }
         }
@@ -700,7 +700,7 @@ exports.updateStatus = async (req, res, next) => {
             </table>
             
             <div style="text-align: center; margin-top: 30px;">
-              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/order/${order._id}" style="display: inline-block; padding: 12px 25px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: ${headerColor}; border-radius: 5px; text-decoration: none;">Track Order</a>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/orders/${order._id}/track" style="display: inline-block; padding: 12px 25px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: ${headerColor}; border-radius: 5px; text-decoration: none;">Track Order</a>
             </div>
           </div>
           <div style="text-align: center; margin-top: 20px; color: #999999; font-size: 12px;">
