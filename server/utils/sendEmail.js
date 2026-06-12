@@ -16,8 +16,8 @@ const getTransporter = () => {
   // Use explicit SMTP config instead of service shorthand — more reliable on cloud
   transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // use STARTTLS
+    port: 465,
+    secure: true, // use TLS directly on 465
     auth: {
       user: emailUser,
       pass: emailPass,
@@ -41,11 +41,7 @@ const sendEmail = async (to, subject, html) => {
 
   // Check if email credentials are configured
   if (!emailUser || !emailPass) {
-    console.log('\n=== Email (Nodemailer not configured) ===');
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log('==========================================\n');
-    return { messageId: 'mock-' + Date.now() };
+    throw new Error(`Email credentials not configured in environment variables. EMAIL_USER=${!!emailUser}, EMAIL_PASS=${!!emailPass}`);
   }
 
   const transport = getTransporter();

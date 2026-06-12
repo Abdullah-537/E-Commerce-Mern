@@ -19,6 +19,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes
+// Temporarily add test-email route to debug Render SMTP blocks
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const sendEmail = require('./utils/sendEmail');
+    const result = await sendEmail(
+      'abdullahshabbir486@gmail.com', 
+      'Render SMTP Debug Test', 
+      '<h1>Testing SMTP from Render</h1><p>If you see this, email works.</p>'
+    );
+    res.json({ success: true, message: 'Email sent successfully from Render!', result });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Email failed to send from Render', 
+      error: error.message,
+      code: error.code,
+      command: error.command
+    });
+  }
+});
+
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
