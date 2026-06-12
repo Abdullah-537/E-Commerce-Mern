@@ -179,11 +179,12 @@ export default function OrderTracking() {
                       <span className="fas fa-map-marker-alt text-primary"></span> Shipping Address
                     </h5>
                     <div className="ps-4 border-start border-2 border-primary border-opacity-25 ms-1">
-                      <p className="text-body-emphasis fw-semibold mb-1">{order.shippingAddress?.street}</p>
-                      <p className="text-body-tertiary mb-1">{order.shippingAddress?.city}, {order.shippingAddress?.province} {order.shippingAddress?.postalCode}</p>
-                      {order.shippingAddress?.phone && (
+                      <p className="text-body-emphasis fw-semibold mb-1">{order.addressId?.fullName}</p>
+                      <p className="text-body-tertiary mb-1">{order.addressId?.street}</p>
+                      <p className="text-body-tertiary mb-1">{order.addressId?.city}, {order.addressId?.province} {order.addressId?.postalCode}</p>
+                      {order.addressId?.phone && (
                         <p className="text-body-quaternary fs-9 mb-0 mt-2">
-                          <span className="fas fa-phone-alt me-2"></span>{order.shippingAddress.phone}
+                          <span className="fas fa-phone-alt me-2"></span>{order.addressId.phone}
                         </p>
                       )}
                     </div>
