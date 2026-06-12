@@ -417,7 +417,7 @@ exports.verifyOTP = async (req, res, next) => {
             </div>
             <div style="background-color: #ffffff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
               <p style="color: #4a5568; font-size: 16px;">Hello <strong>${vendorRecord.businessName}</strong>,</p>
-              <p style="color: #4a5568; font-size: 16px;">You just received a new order on ShopZone.</p>
+              <p style="color: #4a5568; font-size: 16px;">Great news! Your product has just been ordered by <strong>${user.name || 'a customer'}</strong> on ShopZone.</p>
               
               <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); border-radius: 8px; border-left: 4px solid #38a169;">
                 <p style="margin: 0 0 10px 0; color: #276749; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;"><strong>Order ID: #${order._id.toString().slice(-8).toUpperCase()}</strong></p>
