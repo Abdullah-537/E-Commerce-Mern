@@ -360,7 +360,7 @@ exports.verifyOTP = async (req, res, next) => {
       title: 'Order Confirmed',
       message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been confirmed.`,
       type: 'order',
-      link: `/order/${order._id}`
+      link: `/orders/${order._id}/track`
     }).catch(console.error);
 
     // Notify vendors in background
@@ -721,7 +721,7 @@ exports.updateStatus = async (req, res, next) => {
         title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
         message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been ${status}.`,
         type: 'order',
-        link: `/order/${order._id}`
+        link: `/orders/${order._id}/track`
       });
     }
 

@@ -85,7 +85,7 @@ export default function CustomerOrders() {
                         <div className="d-none d-sm-block">
                           <p className="fs-10 text-body-tertiary fw-bold text-uppercase mb-1">Ship To</p>
                           <p className="fs-9 text-body-emphasis fw-semibold mb-0 line-clamp-1">
-                            {order.shippingAddress?.city}, {order.shippingAddress?.province}
+                            {order.addressId?.city}, {order.addressId?.province}
                           </p>
                         </div>
                       </div>
