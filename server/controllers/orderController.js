@@ -317,30 +317,34 @@ exports.verifyOTP = async (req, res, next) => {
     });
 
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #f9f9f9;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #4a90e2; margin: 0;">ShopZone</h1>
+      <div style="font-family: 'Inter', Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 0; background-color: #f4f7f6;">
+        <div style="background-color: #1a202c; padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">Shop<span style="color: #3182ce;">Zone</span></h1>
+          <p style="color: #a0aec0; margin-top: 10px; font-size: 16px;">Order Confirmation</p>
         </div>
-        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-          <h2 style="color: #333333; margin-top: 0; text-align: center;">Order Confirmed! 🎉</h2>
-          <p style="color: #555555; font-size: 16px; line-height: 1.5;">Hi ${user.name || 'Valued Customer'},</p>
-          <p style="color: #555555; font-size: 16px; line-height: 1.5;">Thank you for your order! We've received it and are currently processing it. Here are the details:</p>
+        <div style="background-color: #ffffff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <h2 style="color: #2d3748; margin-top: 0; text-align: center; font-size: 24px;">Thank you for your order! 🎉</h2>
+          <p style="color: #4a5568; font-size: 16px; line-height: 1.6; text-align: center;">Hi ${user.name || 'Valued Customer'},</p>
+          <p style="color: #4a5568; font-size: 16px; line-height: 1.6; text-align: center;">We've received your order and our vendors are getting it ready for shipment.</p>
           
-          <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-radius: 5px;">
-            <p style="margin: 0; color: #333;"><strong>Order ID:</strong> #${order._id.toString().slice(-8).toUpperCase()}</p>
-            <p style="margin: 5px 0 0 0; color: #333;"><strong>Total Amount:</strong> PKR ${order.totalAmount.toLocaleString()}</p>
+          <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%); border-radius: 8px; border-left: 4px solid #3182ce;">
+            <p style="margin: 0 0 10px 0; color: #2b6cb0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;"><strong>Order Reference</strong></p>
+            <p style="margin: 0; color: #2d3748; font-size: 20px; font-weight: bold;">#${order._id.toString().slice(-8).toUpperCase()}</p>
+            <p style="margin: 10px 0 0 0; color: #2d3748; font-size: 18px;">Total: <strong>PKR ${order.totalAmount.toLocaleString()}</strong></p>
           </div>
 
+          <h3 style="color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-top: 30px;">Items Ordered</h3>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             ${itemsHtml}
           </table>
           
-          <div style="text-align: center; margin-top: 30px;">
-            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/order/${order._id}" style="display: inline-block; padding: 12px 25px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #4a90e2; border-radius: 5px; text-decoration: none;">View Order Details</a>
+          <div style="text-align: center; margin-top: 40px;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/order/${order._id}" style="display: inline-block; padding: 14px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #3182ce; border-radius: 6px; text-decoration: none; box-shadow: 0 4px 6px rgba(49, 130, 206, 0.25); transition: background-color 0.3s;">View Order Status</a>
           </div>
         </div>
-        <div style="text-align: center; margin-top: 20px; color: #999999; font-size: 12px;">
-          <p>&copy; 2026 ShopZone. All rights reserved.</p>
+        <div style="text-align: center; margin-top: 20px; padding: 20px; color: #a0aec0; font-size: 12px;">
+          <p style="margin: 0;">&copy; 2026 ShopZone. All rights reserved.</p>
+          <p style="margin: 5px 0 0 0;">Need help? Reply to this email.</p>
         </div>
       </div>
     `;
@@ -363,15 +367,70 @@ exports.verifyOTP = async (req, res, next) => {
     const Vendor = require('../models/Vendor');
     const vendorIds = [...new Set(order.items.map(i => i.vendorId.toString()))];
     for (const vId of vendorIds) {
-      Vendor.findById(vId).then(vendorRecord => {
+      Vendor.findById(vId).populate('userId', 'email name').then(vendorRecord => {
         if (vendorRecord) {
           createNotification({
-            userId: vendorRecord.userId,
+            userId: vendorRecord.userId._id || vendorRecord.userId,
             title: 'New Order Received',
             message: `You have received a new order #${order._id.toString().slice(-8).toUpperCase()}.`,
             type: 'order',
             link: `/vendor/orders/${order._id}`
           }).catch(console.error);
+
+          // Build vendor specific email items
+          const vendorItems = order.items.filter(i => i.vendorId.toString() === vId);
+          let vendorItemsHtml = '';
+          let vendorEarningTotal = 0;
+          
+          vendorItems.forEach(item => {
+            const imgUrl = item.productImage || 'https://via.placeholder.com/60';
+            vendorEarningTotal += item.vendorEarning;
+            vendorItemsHtml += `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+                  <img src="${imgUrl}" alt="${item.productName}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" />
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+                  <strong>${item.productName}</strong><br/>
+                  <span style="color: #888;">Qty: ${item.quantity}</span>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eeeeee; text-align: right;">
+                  <strong>PKR ${(item.vendorEarning).toLocaleString()}</strong>
+                </td>
+              </tr>
+            `;
+          });
+
+          const vendorEmailHtml = `
+            <div style="font-family: 'Inter', Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 0; background-color: #f4f7f6;">
+              <div style="background-color: #1a202c; padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">New Order Received! 🛍️</h1>
+              </div>
+              <div style="background-color: #ffffff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <p style="color: #4a5568; font-size: 16px;">Hello <strong>${vendorRecord.businessName}</strong>,</p>
+                <p style="color: #4a5568; font-size: 16px;">You just received a new order on ShopZone.</p>
+                
+                <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); border-radius: 8px; border-left: 4px solid #38a169;">
+                  <p style="margin: 0 0 10px 0; color: #276749; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;"><strong>Order ID: #${order._id.toString().slice(-8).toUpperCase()}</strong></p>
+                  <p style="margin: 0; color: #2d3748; font-size: 18px;">Your Earnings: <strong>PKR ${vendorEarningTotal.toLocaleString()}</strong></p>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                  ${vendorItemsHtml}
+                </table>
+                
+                <div style="text-align: center; margin-top: 40px;">
+                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/vendor/orders/${order._id}" style="display: inline-block; padding: 14px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #38a169; border-radius: 6px; text-decoration: none;">Process Order</a>
+                </div>
+              </div>
+            </div>
+          `;
+
+          const targetEmail = vendorRecord.businessEmail || vendorRecord.userId?.email;
+          if (targetEmail) {
+            sendEmail(targetEmail, \`New Order Received #${order._id.toString().slice(-8).toUpperCase()} - ShopZone\`, vendorEmailHtml)
+              .catch(err => console.error('Failed to send vendor email:', err));
+          }
         }
       }).catch(console.error);
     }
@@ -426,7 +485,9 @@ exports.resendOTP = async (req, res, next) => {
 // GET MY ORDERS (customer)
 exports.getMyOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ customerId: req.user._id }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customerId: req.user._id })
+      .populate('addressId')
+      .sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     next(error);
