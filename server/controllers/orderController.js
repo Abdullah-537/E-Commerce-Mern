@@ -345,36 +345,35 @@ exports.verifyOTP = async (req, res, next) => {
       </div>
     `;
 
-    try {
-      await sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml);
-    } catch (err) {
-      console.error('Failed to send confirmation email:', err);
-    }
+    // Send email in background
+    sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml)
+      .catch(err => console.error('Failed to send confirmation email:', err));
 
     const { createNotification } = require('../utils/notificationHelper');
-    // Notify customer
-    await createNotification({
+    // Notify customer in background
+    createNotification({
       userId: customerId,
       title: 'Order Confirmed',
       message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been confirmed.`,
       type: 'order',
       link: `/order/${order._id}`
-    });
+    }).catch(console.error);
 
-    // Notify vendors
+    // Notify vendors in background
     const Vendor = require('../models/Vendor');
     const vendorIds = [...new Set(order.items.map(i => i.vendorId.toString()))];
     for (const vId of vendorIds) {
-      const vendorRecord = await Vendor.findById(vId);
-      if (vendorRecord) {
-        await createNotification({
-          userId: vendorRecord.userId,
-          title: 'New Order Received',
-          message: `You have received a new order #${order._id.toString().slice(-8).toUpperCase()}.`,
-          type: 'order',
-          link: `/vendor/orders/${order._id}`
-        });
-      }
+      Vendor.findById(vId).then(vendorRecord => {
+        if (vendorRecord) {
+          createNotification({
+            userId: vendorRecord.userId,
+            title: 'New Order Received',
+            message: `You have received a new order #${order._id.toString().slice(-8).toUpperCase()}.`,
+            type: 'order',
+            link: `/vendor/orders/${order._id}`
+          }).catch(console.error);
+        }
+      }).catch(console.error);
     }
 
     res.status(200).json({ success: true, data: { orderId: order._id }, message: 'Order confirmed!' });
