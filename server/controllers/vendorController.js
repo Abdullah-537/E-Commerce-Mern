@@ -128,7 +128,7 @@ exports.updateProfile = async (req, res, next) => {
       return next(ApiError.notFound('Vendor not found'));
     }
 
-    const { businessName, description, businessEmail, businessPhone, returnPolicy, shippingPolicy, isOpen } = req.body;
+    const { businessName, description, businessEmail, businessPhone, returnPolicy, shippingPolicy, isOpen, logo, banner } = req.body;
 
     if (businessName) {
       vendor.businessName = businessName;
@@ -140,6 +140,8 @@ exports.updateProfile = async (req, res, next) => {
     if (returnPolicy) vendor.returnPolicy = returnPolicy;
     if (shippingPolicy) vendor.shippingPolicy = shippingPolicy;
     if (isOpen !== undefined) vendor.isOpen = isOpen;
+    if (logo !== undefined) vendor.logo = logo;
+    if (banner !== undefined) vendor.banner = banner;
 
     await vendor.save();
     res.status(200).json({ success: true, data: vendor, message: 'Profile updated' });
@@ -212,6 +214,15 @@ exports.approveVendor = async (req, res, next) => {
     vendor.status = 'approved';
     await vendor.save();
 
+    const { createNotification } = require('../utils/notificationHelper');
+    await createNotification({
+      userId: vendor.userId,
+      title: 'Vendor Account Approved',
+      message: `Congratulations! Your vendor account ${vendor.businessName} has been approved. You can now start adding products.`,
+      type: 'vendor',
+      link: '/vendor'
+    });
+
     res.status(200).json({ success: true, data: vendor, message: 'Vendor approved' });
   } catch (error) {
     next(error);
@@ -228,6 +239,15 @@ exports.banVendor = async (req, res, next) => {
 
     vendor.status = 'banned';
     await vendor.save();
+
+    const { createNotification } = require('../utils/notificationHelper');
+    await createNotification({
+      userId: vendor.userId,
+      title: 'Vendor Account Banned',
+      message: `Your vendor account ${vendor.businessName} has been banned. Please contact support.`,
+      type: 'vendor',
+      link: '/contact'
+    });
 
     res.status(200).json({ success: true, message: 'Vendor banned' });
   } catch (error) {
@@ -252,7 +272,31 @@ exports.rejectVendor = async (req, res, next) => {
     await vendor.save();
 
     const sendEmail = require('../utils/sendEmail');
-    await sendEmail(vendor.userId.email, 'Vendor Application Rejected - ShopZone', `<p>Your vendor application was rejected.</p><p>Reason: ${reason}</p>`);
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #f9f9f9;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #d9534f; margin: 0;">ShopZone</h1>
+        </div>
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <h2 style="color: #333333; margin-top: 0;">Application Update</h2>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">We have reviewed your vendor application for <strong>${vendor.businessName}</strong>. Unfortunately, your application has been rejected.</p>
+          <div style="margin: 30px 0; padding: 15px; background-color: #f8d7da; border-left: 4px solid #d9534f; color: #721c24;">
+            <strong>Reason:</strong> ${reason}
+          </div>
+          <p style="color: #777777; font-size: 14px;">If you have any questions or wish to appeal this decision, please contact our support team.</p>
+        </div>
+      </div>
+    `;
+    await sendEmail(vendor.userId.email, 'Vendor Application Update - ShopZone', message);
+
+    const { createNotification } = require('../utils/notificationHelper');
+    await createNotification({
+      userId: vendor.userId._id,
+      title: 'Vendor Application Rejected',
+      message: `Your vendor application for ${vendor.businessName} was rejected. Reason: ${reason}`,
+      type: 'vendor',
+      link: '/contact'
+    });
 
     res.status(200).json({ success: true, message: 'Vendor rejected' });
   } catch (error) {

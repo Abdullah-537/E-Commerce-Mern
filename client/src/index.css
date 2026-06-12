@@ -1,11 +1,56 @@
 /* Phoenix Theme Customizations */
 :root {
-  --phoenix-primary: #2c7be5;
-  --phoenix-secondary: #6e6e6e;
-  --phoenix-success: #00d27a;
+  --phoenix-primary: #0051d4;
+  --phoenix-primary-hover: #0041ab;
+  --phoenix-secondary: #555e78;
+  --phoenix-success: #00a862;
   --phoenix-warning: #f4b400;
   --phoenix-danger: #d43535;
+  --phoenix-body-bg: #faf8ff;
+  --phoenix-card-bg: #ffffff;
+  --phoenix-border-color: #e3e6ed;
 }
+
+/* Premium Button Styling Override */
+.btn-primary {
+  background-color: var(--phoenix-primary) !important;
+  border-color: var(--phoenix-primary) !important;
+  box-shadow: 0 4px 12px rgba(0, 81, 212, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: var(--phoenix-primary-hover) !important;
+  border-color: var(--phoenix-primary-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 81, 212, 0.25);
+}
+
+/* Elevated Premium Card Override */
+.card {
+  border: 1px solid var(--phoenix-border-color) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+  border-radius: 12px !important;
+  background-color: var(--phoenix-card-bg) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Modern Form Field Glow */
+.form-control {
+  border-radius: 8px !important;
+  border: 1px solid var(--phoenix-border-color) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+  border-color: var(--phoenix-primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 81, 212, 0.12) !important;
+}
+
 
 /* Avatar sizes matching Phoenix */
 .avatar { position: relative; overflow: hidden; }

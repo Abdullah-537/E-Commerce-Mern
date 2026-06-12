@@ -38,7 +38,7 @@ export default function FavouriteStores() {
   }
 
   return (
-    <section className="pt-5 pb-9">
+    <section className="pt-5 pb-9 bg-body flex-1">
       <div className="container-small">
         <nav className="mb-3" aria-label="breadcrumb">
           <ol className="breadcrumb mb-0">

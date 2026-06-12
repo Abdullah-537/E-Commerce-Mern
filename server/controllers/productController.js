@@ -36,7 +36,7 @@ exports.getProducts = async (req, res, next) => {
     else query.sort({ createdAt: -1 });
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const products = await query.skip(skip).limit(parseInt(limit)).populate('vendorId', 'businessName slug');
+    const products = await query.skip(skip).limit(parseInt(limit)).populate('vendorId', 'businessName slug').populate('categoryId', 'name');
     const total = await Product.countDocuments(filter);
 
     res.status(200).json({
@@ -76,6 +76,7 @@ exports.getVendorProducts = async (req, res, next) => {
     const filter = { vendorId: req.params.vendorId, isActive: true };
 
     const products = await Product.find(filter)
+      .populate('categoryId', 'name')
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });

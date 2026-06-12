@@ -69,6 +69,34 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
+exports.updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return next(ApiError.notFound('User not found'));
+    }
+
+    if (!user.passwordHash && user.googleId) {
+      return next(ApiError.badRequest('Google users cannot change password'));
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return next(ApiError.unauthorized('Incorrect current password'));
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.addAddress = async (req, res, next) => {
   try {
     const { label, fullName, phone, street, city, province, postalCode, country, isDefault } = req.body;
@@ -98,7 +126,11 @@ exports.addAddress = async (req, res, next) => {
 
 exports.getAddresses = async (req, res, next) => {
   try {
-    const addresses = await Address.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: -1 });
+    let targetUserId = req.user._id;
+    if (req.query.userId && req.user.role === 'admin') {
+      targetUserId = req.query.userId;
+    }
+    const addresses = await Address.find({ userId: targetUserId }).sort({ isDefault: -1, createdAt: -1 });
     res.status(200).json({ success: true, data: addresses });
   } catch (error) {
     next(error);

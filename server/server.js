@@ -33,6 +33,7 @@ app.use('/api/payouts', require('./routes/payoutRoutes'));
 app.use('/api/refunds', require('./routes/refundRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/chat', require('./routes/chatbotRoutes'));
 
 // Health Check
 app.get('/api/health', (req, res) => {

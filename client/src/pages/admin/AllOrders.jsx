@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
+import { getAvatarColor } from '../../utils/avatarHelper'
 
 export default function AllOrders() {
   const [orders, setOrders] = useState([])
@@ -38,29 +39,30 @@ export default function AllOrders() {
   const toggleAll = () => setSelected(selected.length === filtered.length ? [] : filtered.map(o => o._id))
 
   return (
-    <div>
-      {/* Header */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb mb-1">
-              <li className="breadcrumb-item"><Link to="/admin">Admin</Link></li>
-              <li className="breadcrumb-item active">Orders</li>
-            </ol>
-          </nav>
-          <h3 className="text-body-emphasis mb-0">Orders</h3>
-        </div>
-        <div className="d-flex gap-2">
-          <button className="btn btn-phoenix-secondary btn-sm">
-            <span className="fas fa-file-export me-1"></span>Export
+    <div className="pb-5">
+      {/* Page Header */}
+      <div className="mb-4">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb mb-2" style={{ fontSize: '0.8rem' }}>
+            <li className="breadcrumb-item"><Link to="/admin" className="text-decoration-none">Admin</Link></li>
+            <li className="breadcrumb-item active" aria-current="page">Orders</li>
+          </ol>
+        </nav>
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <h3 className="text-body-emphasis fw-bold mb-1">Order Management</h3>
+            <p className="text-muted fs-9 mb-0">Track, filter, and manage all marketplace purchase transactions.</p>
+          </div>
+          <button className="btn btn-phoenix-secondary btn-sm fw-bold rounded-pill">
+            <span className="fas fa-file-export me-2"></span>Export CSV
           </button>
         </div>
       </div>
 
       {/* Status Tabs */}
-      <ul className="nav nav-underline mb-4 fs-9 border-bottom border-translucent flex-nowrap overflow-auto scrollbar">
+      <ul className="nav nav-underline mb-4 fs-9 border-bottom border-translucent flex-nowrap overflow-auto gap-1">
         {[
-          { key: 'all', label: 'All', count: counts.all },
+          { key: 'all', label: 'All Orders', count: counts.all },
           { key: 'pending', label: 'Pending', count: counts.pending },
           { key: 'processing', label: 'Processing', count: counts.processing },
           { key: 'shipped', label: 'Shipped', count: counts.shipped },
@@ -69,101 +71,114 @@ export default function AllOrders() {
         ].map(tab => (
           <li className="nav-item" key={tab.key}>
             <button
-              className={`nav-link text-nowrap ${filter === tab.key ? 'active fw-semibold' : 'text-body-tertiary'}`}
+              className={`nav-link text-nowrap pb-3 ${filter === tab.key ? 'active fw-bold' : 'text-body-tertiary'}`}
               onClick={() => setFilter(tab.key)}
+              style={{ borderBottomWidth: '3px' }}
             >
-              {tab.label} <span className="text-body-tertiary fw-semibold ms-1">({tab.count})</span>
+              {tab.label} <span className="badge bg-light text-dark ms-1 fw-semibold">{tab.count}</span>
             </button>
           </li>
         ))}
       </ul>
 
-      {/* Search Bar */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div className="search-box" style={{ maxWidth: 300 }}>
-          <form className="position-relative">
-            <input className="form-control form-control-sm search-input bg-body-highlight border-translucent ps-6" type="search" placeholder="Search orders..." value={search} onChange={e => setSearch(e.target.value)} />
-            <span className="fas fa-search search-box-icon"></span>
-          </form>
+      {/* Search & Info Bar */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+        <div className="position-relative" style={{ minWidth: '300px' }}>
+          <span className="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></span>
+          <input 
+            className="form-control form-control-sm ps-5 bg-white border-translucent" 
+            type="search" 
+            placeholder="Search by order ID or customer name..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            style={{ borderRadius: '8px' }}
+          />
         </div>
-        <span className="text-body-tertiary fs-10">{filtered.length} orders</span>
+        <div className="d-flex align-items-center gap-2">
+          {selected.length > 0 && <span className="text-primary fw-semibold fs-9">{selected.length} selected</span>}
+          <span className="badge bg-light text-dark border border-translucent px-3 py-2 fw-semibold fs-10">
+            {filtered.length} of {orders.length} orders
+          </span>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="card border-translucent">
+      {/* Orders Table Card */}
+      <div className="card border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
         <div className="card-body p-0">
           {loading ? (
-            <div className="text-center py-7"><div className="spinner-border spinner-border-sm text-primary"></div><p className="text-body-tertiary mt-2 mb-0 fs-9">Loading orders...</p></div>
+            <div className="text-center py-5">
+              <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-7">
-              <span className="fas fa-shopping-bag fs-3 text-body-quaternary d-block mb-3"></span>
-              <h5 className="text-body-tertiary">No orders found</h5>
+            <div className="text-center py-5">
+              <span className="fas fa-shopping-bag fs-3 text-muted d-block mb-3"></span>
+              <h5 className="text-muted fw-semibold">No orders found</h5>
+              <p className="text-muted fs-10 mb-0">Try adjusting your filters or search.</p>
             </div>
           ) : (
-            <div className="table-responsive scrollbar">
-              <table className="table table-hover table-sm fs-9 mb-0">
-                <thead>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                <thead className="table-light">
                   <tr>
-                    <th className="align-middle ps-3" style={{ width: 30 }}>
+                    <th className="ps-4 py-3" style={{ width: 40 }}>
                       <input className="form-check-input" type="checkbox" checked={selected.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
                     </th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Order</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Customer</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Date</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Items</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end">Total</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Payment</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Status</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Order ID</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Customer</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Date</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '80px' }}>Items</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-end" style={{ width: '140px' }}>Total</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '120px' }}>Payment</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '130px' }}>Status</th>
+                    <th className="pe-4 py-3 text-end" style={{ width: '100px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(o => (
-                    <tr key={o._id} className={selected.includes(o._id) ? 'bg-primary bg-opacity-10' : ''}>
-                      <td className="align-middle ps-3">
+                    <tr key={o._id} className={selected.includes(o._id) ? 'table-active' : ''}>
+                      <td className="ps-4">
                         <input className="form-check-input" type="checkbox" checked={selected.includes(o._id)} onChange={() => toggleSelect(o._id)} />
                       </td>
-                      <td className="align-middle">
-                        <Link to={`/admin/orders/${o._id}`} className="fw-semibold text-primary text-decoration-none">
+                      <td>
+                        <Link to={`/admin/orders/${o._id}`} className="fw-bold text-primary text-decoration-none">
                           #{o._id?.slice(-6).toUpperCase()}
                         </Link>
                       </td>
-                      <td className="align-middle">
+                      <td>
                         <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-s">
-                            <div className="avatar-name rounded-circle bg-primary-subtle text-primary">
-                              <span className="fs-10">{o.customerId?.name?.charAt(0).toUpperCase() || '?'}</span>
+                          <div className="avatar avatar-s overflow-hidden">
+                            <div className={`avatar-name rounded-circle bg-${getAvatarColor(o.customerId?.name)}-subtle text-${getAvatarColor(o.customerId?.name)} fw-bold w-100 h-100 d-flex align-items-center justify-content-center`}>
+                              <span>{o.customerId?.name?.charAt(0).toUpperCase() || '?'}</span>
                             </div>
                           </div>
-                          <span className="text-body-emphasis fw-semibold fs-9">{o.customerId?.name || 'Unknown'}</span>
+                          {o.customerId ? (
+                            <Link to={`/admin/customers/${o.customerId._id}`} className="text-body-emphasis fw-semibold text-decoration-none hover-primary">
+                              {o.customerId.name}
+                            </Link>
+                          ) : (
+                            <span className="text-body-emphasis fw-semibold">Unknown</span>
+                          )}
                         </div>
                       </td>
-                      <td className="align-middle text-body-tertiary fs-10">
+                      <td className="text-muted fs-10">
                         {o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                       </td>
-                      <td className="align-middle text-center text-body-emphasis">
-                        {o.items?.length || 0}
-                      </td>
-                      <td className="align-middle text-end fw-bold text-body-emphasis">
-                        PKR {o.totalAmount?.toLocaleString()}
-                      </td>
-                      <td className="align-middle text-center">
-                        <span className={`badge badge-phoenix badge-phoenix-${o.paymentMethod === 'cod' ? 'warning' : 'success'} fs-10`}>
+                      <td className="text-center fw-bold">{o.items?.length || 0}</td>
+                      <td className="text-end fw-bold text-body-emphasis">PKR {o.totalAmount?.toLocaleString()}</td>
+                      <td className="text-center">
+                        <span className={`badge badge-phoenix badge-phoenix-${o.paymentMethod === 'cod' ? 'warning' : 'success'} px-2 py-1 fw-bold fs-10`}>
                           {o.paymentMethod === 'cod' ? 'COD' : 'Paid'}
                         </span>
                       </td>
-                      <td className="align-middle text-center">
-                        <span className={`badge badge-phoenix badge-phoenix-${statusColors[o.status] || 'secondary'} fs-10`}>
+                      <td className="text-center">
+                        <span className={`badge badge-phoenix badge-phoenix-${statusColors[o.status] || 'secondary'} px-2 py-1 fw-bold fs-10`}>
                           {o.status}
                         </span>
                       </td>
-                      <td className="align-middle text-end pe-3">
-                        <div className="btn-group">
-                          <Link to={`/admin/orders/${o._id}`} className="btn btn-sm btn-phoenix-primary px-2" title="View">
-                            <span className="fas fa-eye fs-10"></span>
-                          </Link>
-                          <Link to={`/admin/orders/${o._id}/invoice`} className="btn btn-sm btn-phoenix-info px-2" title="Invoice">
-                            <span className="fas fa-file-invoice fs-10"></span>
+                      <td className="text-end pe-4">
+                        <div className="d-flex gap-2 justify-content-end">
+                          <Link to={`/admin/orders/${o._id}`} className="btn btn-phoenix-primary btn-xs rounded-circle p-2" title="View Order">
+                            <span className="fas fa-eye"></span>
                           </Link>
                         </div>
                       </td>
@@ -174,21 +189,6 @@ export default function AllOrders() {
             </div>
           )}
         </div>
-        {filtered.length > 0 && (
-          <div className="card-footer border-top border-translucent d-flex justify-content-between align-items-center">
-            <p className="mb-0 text-body-tertiary fs-10">
-              {selected.length > 0 && <span className="fw-semibold text-body-emphasis">{selected.length} selected · </span>}
-              Showing {filtered.length} of {orders.length} orders
-            </p>
-            <nav>
-              <ul className="pagination pagination-sm mb-0">
-                <li className="page-item disabled"><button className="page-link"><span className="fas fa-chevron-left"></span></button></li>
-                <li className="page-item active"><button className="page-link">1</button></li>
-                <li className="page-item disabled"><button className="page-link"><span className="fas fa-chevron-right"></span></button></li>
-              </ul>
-            </nav>
-          </div>
-        )}
       </div>
     </div>
   )

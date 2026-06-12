@@ -46,7 +46,7 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <section className="pt-5 pb-9">
+      <section className="pt-5 pb-9 bg-body flex-1">
         <div className="container-small cart">
           <div className="text-center py-9">
             <span className="fas fa-shopping-cart fs-5 text-body-quaternary mb-4 d-block"></span>
@@ -62,7 +62,7 @@ export default function Cart() {
   }
 
   return (
-    <section className="pt-5 pb-9">
+    <section className="pt-5 pb-9 bg-body flex-1">
       <div className="container-small cart">
         <nav className="mb-3" aria-label="breadcrumb">
           <ol className="breadcrumb mb-0">

@@ -47,7 +47,7 @@ export default function Wishlist() {
 
   if (!wishlist?.items?.length) {
     return (
-      <section className="pt-5 pb-9">
+      <section className="pt-5 pb-9 bg-body flex-1">
         <div className="container-small cart">
           <div className="text-center py-9">
             <span className="far fa-heart fs-5 text-body-quaternary mb-4 d-block"></span>
@@ -61,7 +61,7 @@ export default function Wishlist() {
   }
 
   return (
-    <section className="pt-5 pb-9">
+    <section className="pt-5 pb-9 bg-body flex-1">
       <div className="container-small cart">
         <nav className="mb-3" aria-label="breadcrumb">
           <ol className="breadcrumb mb-0">

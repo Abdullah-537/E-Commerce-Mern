@@ -17,6 +17,8 @@ import ResetPassword from './pages/auth/ResetPassword'
 import SignOut from './pages/auth/SignOut'
 import VerifyOTP from './pages/auth/VerifyOTP'
 
+import Chatbot from './components/common/Chatbot'
+
 // Customer Pages
 import Homepage from './pages/customer/Homepage'
 import ProductDetails from './pages/customer/ProductDetails'
@@ -286,6 +288,7 @@ function App() {
       {/* 404 */}
       <Route path="*" element={<div className="text-center py-5"><h2>404 - Page Not Found</h2></div>} />
     </Routes>
+    <Chatbot />
     </ErrorBoundary>
   )
 }

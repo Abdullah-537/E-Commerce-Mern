@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { updateUser } from '../../store/slices/authSlice'
 import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
+import { getAvatarColor } from '../../utils/avatarHelper'
 
 export default function VendorProfile() {
   const { user } = useSelector(state => state.auth)
@@ -47,10 +48,10 @@ export default function VendorProfile() {
 
   const renderAvatar = (size = 100) => {
     if (avatarSrc) {
-      return <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: size, height: size, objectFit: 'cover' }} />
+      return <img className="rounded-circle overflow-hidden" src={avatarSrc} alt="" style={{ width: size, height: size, objectFit: 'cover' }} />
     }
     return (
-      <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+      <div className={`rounded-circle bg-${getAvatarColor(vendor?.businessName || user?.name)}-subtle text-${getAvatarColor(vendor?.businessName || user?.name)} d-flex align-items-center justify-content-center fw-bold overflow-hidden`} style={{ width: size, height: size, fontSize: size * 0.4 }}>
         {getInitial()}
       </div>
     )
@@ -70,7 +71,7 @@ export default function VendorProfile() {
           <div className="row align-items-center g-4">
             <div className="col-auto">
               <div className="position-relative" style={{ cursor: 'pointer' }} onClick={() => document.getElementById('vendor-avatar-upload').click()}>
-                <div className="avatar avatar-5xl">
+                <div>
                   {renderAvatar(100)}
                 </div>
                 <div className="position-absolute bottom-0 end-0 bg-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 28, height: 28 }}>
@@ -88,9 +89,12 @@ export default function VendorProfile() {
                     const reader = new FileReader()
                     reader.onloadend = async () => {
                       try {
-                        const { data } = await api.put('/users/profile', { avatar: reader.result })
-                        dispatch(updateUser(data.data))
-                        toast.success('Profile picture updated')
+                        const { data } = await api.put('/vendor/profile', { logo: reader.result })
+                        setVendor(data.data)
+                        // Also update Redux if needed to keep the top nav in sync, but top nav uses user.avatar
+                        // We will also update user.avatar just to keep them identical if that's what they expect
+                        await api.put('/users/profile', { avatar: reader.result }).then(res => dispatch(updateUser(res.data.data)))
+                        toast.success('Store picture updated')
                       } catch (err) {
                         toast.error('Failed to update picture')
                       }

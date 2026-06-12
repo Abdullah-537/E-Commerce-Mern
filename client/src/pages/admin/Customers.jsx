@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
-
+import { getAvatarColor } from '../../utils/avatarHelper'
 export default function Customers() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -21,105 +21,125 @@ export default function Customers() {
   const toggleAll = () => setSelected(selected.length === filtered.length ? [] : filtered.map(c => c._id))
 
   return (
-    <div>
-      {/* Header */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb mb-1">
-              <li className="breadcrumb-item"><Link to="/admin">Admin</Link></li>
-              <li className="breadcrumb-item active">Customers</li>
-            </ol>
-          </nav>
-          <h3 className="text-body-emphasis mb-0">Customers</h3>
+    <div className="pb-5">
+      {/* Page Header */}
+      <div className="mb-4">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb mb-2" style={{ fontSize: '0.8rem' }}>
+            <li className="breadcrumb-item"><Link to="/admin" className="text-decoration-none">Admin</Link></li>
+            <li className="breadcrumb-item active" aria-current="page">Customers</li>
+          </ol>
+        </nav>
+        <h3 className="text-body-emphasis fw-bold mb-1">Customer Directory</h3>
+        <p className="text-muted fs-9 mb-0">Monitor registered user demographics, statuses, verification compliance, and accounts activity.</p>
+      </div>
+
+      {/* Toolbar / Search */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+        <div className="position-relative" style={{ minWidth: '300px' }}>
+          <span className="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></span>
+          <input 
+            className="form-control form-control-sm ps-5 bg-white border-translucent" 
+            type="search" 
+            placeholder="Search by name or email..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            style={{ borderRadius: '8px', paddingHeight: '38px' }}
+          />
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          {selected.length > 0 && (
+            <span className="text-primary fw-semibold fs-9 me-2">{selected.length} selected</span>
+          )}
+          <span className="badge bg-light text-dark border border-translucent px-3 py-2 fw-semibold fs-10">
+            Total: {filtered.length} Customers
+          </span>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div className="search-box" style={{ maxWidth: 300 }}>
-          <form className="position-relative">
-            <input className="form-control form-control-sm search-input bg-body-highlight border-translucent ps-6" type="search" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)} />
-            <span className="fas fa-search search-box-icon"></span>
-          </form>
-        </div>
-        <span className="text-body-tertiary fs-10">{filtered.length} customers</span>
-      </div>
-
-      {/* Table */}
-      <div className="card border-translucent">
+      {/* Directory Card */}
+      <div className="card border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
         <div className="card-body p-0">
           {loading ? (
-            <div className="text-center py-7"><div className="spinner-border spinner-border-sm text-primary"></div><p className="text-body-tertiary mt-2 mb-0 fs-9">Loading customers...</p></div>
+            <div className="text-center py-5">
+              <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-7">
-              <span className="fas fa-users fs-3 text-body-quaternary d-block mb-3"></span>
-              <h5 className="text-body-tertiary">No customers found</h5>
+            <div className="text-center py-5">
+              <span className="fas fa-users-slash fs-3 text-muted d-block mb-3"></span>
+              <h5 className="text-muted fw-semibold">No customers found</h5>
+              <p className="text-muted fs-10 mb-0">Try adjusting your search criteria.</p>
             </div>
           ) : (
-            <div className="table-responsive scrollbar">
-              <table className="table table-hover table-sm fs-9 mb-0">
-                <thead>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                <thead className="table-light">
                   <tr>
-                    <th className="align-middle ps-3" style={{ width: 30 }}>
+                    <th className="ps-4 py-3" style={{ width: 40 }}>
                       <input className="form-check-input" type="checkbox" checked={selected.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
                     </th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 ps-2">Customer</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Email</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Phone</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Role</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Verified</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end">Joined</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Customer</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Email Address</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Phone Number</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '120px' }}>Role</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '150px' }}>Account Status</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-end" style={{ width: '130px' }}>Joined Date</th>
+                    <th className="pe-4 py-3 text-end" style={{ width: '120px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(c => (
-                    <tr key={c._id} className={selected.includes(c._id) ? 'bg-primary bg-opacity-10' : ''}>
-                      <td className="align-middle ps-3">
+                    <tr key={c._id} className={selected.includes(c._id) ? 'table-active' : ''}>
+                      <td className="ps-4">
                         <input className="form-check-input" type="checkbox" checked={selected.includes(c._id)} onChange={() => toggleSelect(c._id)} />
                       </td>
-                      <td className="align-middle ps-2">
+                      <td>
                         <Link to={`/admin/customers/${c._id}`} className="d-flex align-items-center gap-2 text-decoration-none">
-                          <div className="avatar avatar-s">
+                          <div className="avatar avatar-s overflow-hidden">
                             {c.avatar ? (
-                              <img className="rounded-circle" src={c.avatar} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} />
+                              <img className="rounded-circle w-100 h-100" src={c.avatar} alt="" style={{ objectFit: 'cover' }} />
                             ) : (
-                              <div className="avatar-name rounded-circle bg-primary-subtle text-primary">
-                                <span className="fs-10">{c.name?.charAt(0).toUpperCase()}</span>
+                              <div className={`avatar-name rounded-circle bg-${getAvatarColor(c.name)}-subtle text-${getAvatarColor(c.name)} fw-bold w-100 h-100 d-flex align-items-center justify-content-center`}>
+                                <span>{c.name?.charAt(0).toUpperCase() || '?'}</span>
                               </div>
                             )}
                           </div>
-                          <span className="fw-semibold text-body-emphasis">{c.name}</span>
+                          <span className="fw-semibold text-body-emphasis hover-primary">{c.name}</span>
                         </Link>
                       </td>
-                      <td className="align-middle text-body-tertiary">{c.email}</td>
-                      <td className="align-middle text-body-tertiary">{c.phone || '—'}</td>
-                      <td className="align-middle text-center">
-                        <span className={`badge badge-phoenix badge-phoenix-${c.role === 'admin' ? 'danger' : c.role === 'vendor' ? 'success' : 'primary'} fs-10`}>
+                      <td className="text-muted">{c.email}</td>
+                      <td className="text-muted">{c.phone || '—'}</td>
+                      <td className="text-center">
+                        <span className={`badge badge-phoenix badge-phoenix-${c.role === 'admin' ? 'danger' : c.role === 'vendor' ? 'success' : 'primary'} px-2 py-1 fw-bold fs-10`}>
                           {c.role}
                         </span>
                       </td>
-                      <td className="align-middle text-center">
-                        {c.isVerified ? (
-                          <span className="fas fa-check-circle text-success" title="Verified"></span>
-                        ) : (
-                          <span className="fas fa-times-circle text-body-quaternary" title="Unverified"></span>
-                        )}
-                        {!c.isActive && (
-                          <span className="badge badge-phoenix badge-phoenix-danger ms-1 fs-11">BANNED</span>
-                        )}
+                      <td className="text-center">
+                        <div className="d-flex align-items-center justify-content-center gap-2">
+                          {c.isVerified ? (
+                            <span className="badge badge-phoenix badge-phoenix-info px-2 py-1 fw-bold fs-10">
+                              <span className="fas fa-check-circle me-1"></span>Verified
+                            </span>
+                          ) : (
+                            <span className="badge badge-phoenix badge-phoenix-secondary px-2 py-1 fw-bold fs-10">
+                              Unverified
+                            </span>
+                          )}
+                          {!c.isActive && (
+                            <span className="badge badge-phoenix badge-phoenix-danger px-2 py-1 fw-bold fs-10">Banned</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="align-middle text-end text-body-tertiary fs-10">
+                      <td className="text-muted text-end fs-10">
                         {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                       </td>
-                      <td className="align-middle text-end pe-3">
-                        <div className="btn-group">
-                          <Link to={`/admin/customers/${c._id}`} className="btn btn-sm btn-phoenix-secondary" title="View/Update">
+                      <td className="text-end pe-4">
+                        <div className="d-flex gap-2 justify-content-end">
+                          <Link to={`/admin/customers/${c._id}`} className="btn btn-phoenix-secondary btn-xs rounded-circle p-2" title="View/Edit Profile">
                             <span className="fas fa-eye"></span>
                           </Link>
                           <button 
-                            className={`btn btn-sm ${c.isActive ? 'btn-phoenix-danger' : 'btn-phoenix-success'}`}
+                            className={`btn btn-xs rounded-circle p-2 ${c.isActive ? 'btn-phoenix-danger' : 'btn-phoenix-success'}`}
                             onClick={async () => {
                               try {
                                 await api.put(`/users/${c._id}/ban`, { isActive: !c.isActive })
@@ -128,7 +148,7 @@ export default function Customers() {
                                 console.error(e)
                               }
                             }}
-                            title={c.isActive ? "Deactivate" : "Activate"}
+                            title={c.isActive ? "Ban Account" : "Unban Account"}
                           >
                             <span className={`fas fa-${c.isActive ? 'ban' : 'check'}`}></span>
                           </button>
@@ -141,18 +161,6 @@ export default function Customers() {
             </div>
           )}
         </div>
-        {filtered.length > 0 && (
-          <div className="card-footer border-top border-translucent d-flex justify-content-between align-items-center">
-            <p className="mb-0 text-body-tertiary fs-10">Showing {filtered.length} customers</p>
-            <nav>
-              <ul className="pagination pagination-sm mb-0">
-                <li className="page-item disabled"><button className="page-link"><span className="fas fa-chevron-left"></span></button></li>
-                <li className="page-item active"><button className="page-link">1</button></li>
-                <li className="page-item disabled"><button className="page-link"><span className="fas fa-chevron-right"></span></button></li>
-              </ul>
-            </nav>
-          </div>
-        )}
       </div>
     </div>
   )

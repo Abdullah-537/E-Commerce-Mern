@@ -5,6 +5,9 @@ import { toast } from 'react-toastify'
 import { useEffect, useState } from 'react'
 import api from '../../store/api/baseApi'
 import NotificationDropdown from './NotificationDropdown'
+import Logo from '../common/Logo'
+import { getAvatarColor } from '../../utils/avatarHelper'
+
 
 const vendorNavItems = [
   { path: '/vendor', label: 'Dashboard', icon: 'fas fa-chart-pie', exact: true },
@@ -74,8 +77,9 @@ export default function VendorLayout({ children }) {
     if (avatarSrc) {
       return <img className="rounded-circle flex-shrink-0" src={avatarSrc} alt="" style={{ width: size, height: size, minWidth: size, minHeight: size, objectFit: 'cover' }} />
     }
+    const colorName = user?.vendor?.businessName || user?.name || 'V'
     return (
-      <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: size, height: size, minWidth: size, minHeight: size, fontSize: size * 0.4 }}>
+      <div className={`rounded-circle bg-${getAvatarColor(colorName)}-subtle text-${getAvatarColor(colorName)} d-flex align-items-center justify-content-center fw-bold flex-shrink-0`} style={{ width: size, height: size, minWidth: size, minHeight: size, fontSize: size * 0.4 }}>
         {getInitial()}
       </div>
     )
@@ -87,11 +91,8 @@ export default function VendorLayout({ children }) {
       <nav className="navbar navbar-expand-lg bg-body-emphasis border-bottom border-translucent px-3 px-lg-4" style={{ position: 'sticky', top: 0, zIndex: 1030 }}>
         <div className="container-fluid">
           {/* Logo */}
-          <Link to="/vendor" className="navbar-brand d-flex align-items-center text-decoration-none">
-            <img src="/assets/img/icons/logo.png" alt="ShopZone" width="27" />
-            <span className="fw-bolder text-body-emphasis fs-7 ms-2">ShopZone</span>
-            <span className="badge badge-phoenix badge-phoenix-success ms-2 fs-10">Vendor</span>
-          </Link>
+          <Logo size="sm" link={true} vendorBadge={true} />
+
 
           {/* Hamburger for mobile */}
           <button
@@ -146,7 +147,7 @@ export default function VendorLayout({ children }) {
                   className="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none"
                   onClick={(e) => { e.stopPropagation(); setProfileDropdown(!profileDropdown) }}
                 >
-                  <div className="avatar avatar-m">
+                  <div className="avatar avatar-m overflow-hidden">
                     {renderAvatar(36)}
                   </div>
                   <div className="d-none d-md-block text-start">

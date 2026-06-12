@@ -27,7 +27,18 @@ export default function AddEditProduct() {
   const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
-    api.get('/categories').then(res => setCategories(res.data.data)).catch(() => {})
+    api.get('/categories').then(res => {
+      const cats = res.data.data
+      const flatCats = []
+      const flatten = (cList, depth = 0) => {
+        cList.forEach(c => {
+          flatCats.push({ ...c, depth })
+          if (c.children?.length) flatten(c.children, depth + 1)
+        })
+      }
+      flatten(cats)
+      setCategories(flatCats)
+    }).catch(() => {})
     if (id) {
       api.get(`/products/${id}`).then(res => {
         const p = res.data.data
@@ -438,7 +449,9 @@ export default function AddEditProduct() {
                     >
                       <option value="">Select Category</option>
                       {categories.map(cat => (
-                        <option key={cat._id} value={cat._id}>{cat.name}</option>
+                        <option key={cat._id} value={cat._id}>
+                          {'— '.repeat(cat.depth)} {cat.name}
+                        </option>
                       ))}
                     </select>
                   </div>

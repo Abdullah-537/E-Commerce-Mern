@@ -6,6 +6,7 @@ const roleMiddleware = require('../middleware/roleMiddleware');
 
 router.get('/profile', protect, userController.getProfile);
 router.put('/profile', protect, userController.updateProfile);
+router.put('/profile/password', protect, userController.updatePassword);
 router.post('/addresses', protect, roleMiddleware('customer', 'vendor', 'admin'), userController.addAddress);
 router.get('/addresses', protect, roleMiddleware('customer', 'vendor', 'admin'), userController.getAddresses);
 router.put('/addresses/:id', protect, roleMiddleware('customer', 'vendor', 'admin'), userController.updateAddress);

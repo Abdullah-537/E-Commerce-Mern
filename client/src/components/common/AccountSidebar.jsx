@@ -21,7 +21,13 @@ export default function AccountSidebar() {
         {/* User Info */}
         <div className="d-flex align-items-center mb-4 pb-3 border-bottom border-translucent">
           <div className="avatar avatar-xl me-3">
-            <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 56, height: 56, objectFit: 'cover' }} />
+            {user?.avatar ? (
+              <img className="rounded-circle" src={user.avatar} alt="" style={{ width: 56, height: 56, objectFit: 'cover' }} />
+            ) : (
+              <div className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle w-100 h-100 fs-7">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
           </div>
           <div>
             <h6 className="mb-0 text-body-emphasis">{user?.name || 'User'}</h6>

@@ -6,6 +6,8 @@ import api from '../../store/api/baseApi'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import NotificationDropdown from './NotificationDropdown'
+import Logo from '../common/Logo'
+
 
 export default function CustomerLayout({ children }) {
   const navigate = useNavigate()
@@ -116,18 +118,14 @@ export default function CustomerLayout({ children }) {
   };
 
   return (
-    <main className="main" id="top">
+    <main className="main bg-body text-body" id="top">
       <section className="py-0">
         <div className="container-small">
           <div className="ecommerce-topbar">
             <nav className="navbar navbar-expand-lg navbar-light px-0">
               <div className="row gx-0 gy-2 w-100 flex-between-center">
                 <div className="col-auto">
-                  <Link className="text-decoration-none" to="/">
-                    <div className="d-flex align-items-center"><img src="/assets/img/icons/logo.png" alt="shopzone" width="27" />
-                      <h5 className="logo-text ms-2">ShopZone</h5>
-                    </div>
-                  </Link>
+                  <Logo size="sm" link={true} />
                 </div>
                 <div className="col-auto order-md-1">
                   <ul className="navbar-nav navbar-nav-icons flex-row me-n2">
@@ -146,22 +144,19 @@ export default function CustomerLayout({ children }) {
                       </a>
                     </li>
                     )}
-                    {isAuthenticated ? <NotificationDropdown /> : (
-                      <li className="nav-item dropdown feather-icon-wait" style={{height: '40px'}}>
-                        <a className="nav-link px-2 icon-indicator icon-indicator-sm"
-                          id="navbarTopDropdownNotification" href="#" role="button" data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false"
-                          onClick={(e) => e.preventDefault()}>
-                          <span className="text-body-tertiary" data-feather="bell" style={{height:'20px',width:'20px'}}></span>
-                        </a>
-                      </li>
-                    )}
+                    <NotificationDropdown />
                     <li className="nav-item dropdown feather-icon-wait dropdown-profile-container" style={{height: '40px'}}>
                       <a className="nav-link px-2" id="navbarDropdownUser" href="#" role="button" aria-haspopup="true" aria-expanded={dropdownOpen}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}>
                         <div className="d-flex align-items-center justify-content-center" style={{width: 24, height: 24}}>
-                          {isAuthenticated && user?.avatar ? (
-                            <img className="rounded-circle w-100 h-100" src={user.avatar} alt="" style={{objectFit: 'cover'}} />
+                          {isAuthenticated ? (
+                            user?.avatar ? (
+                              <img className="rounded-circle w-100 h-100" src={user.avatar} alt="" style={{objectFit: 'cover'}} />
+                            ) : (
+                              <div className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle w-100 h-100 fs-10">
+                                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                              </div>
+                            )
                           ) : (
                             <span className="fas fa-user text-body-tertiary fs-8"></span>
                           )}
@@ -331,8 +326,8 @@ export default function CustomerLayout({ children }) {
         <div className="container-small">
           <div className="row justify-content-between gy-4">
             <div className="col-12 col-lg-4">
-              <div className="d-flex align-items-center mb-3"><img src="/assets/img/icons/logo.png" alt="shopzone" width="27" />
-                <h5 className="logo-text ms-2">ShopZone</h5>
+              <div className="mb-3">
+                <Logo size="sm" link={true} />
               </div>
               <p className="text-body-tertiary mb-1 fw-semibold lh-sm fs-9">ShopZone is an advanced multi-vendor marketplace with fascinating features and amazing layout.</p>
             </div>

@@ -33,51 +33,61 @@ export default function Complaints() {
   }
 
   return (
-    <div>
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb mb-1">
-              <li className="breadcrumb-item"><Link to="/admin">Admin</Link></li>
-              <li className="breadcrumb-item active">Complaints</li>
-            </ol>
-          </nav>
-          <h3 className="text-body-emphasis mb-0">Complaints</h3>
-        </div>
+    <div className="pb-5">
+      {/* Page Header */}
+      <div className="mb-4">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb mb-2" style={{ fontSize: '0.8rem' }}>
+            <li className="breadcrumb-item"><Link to="/admin" className="text-decoration-none">Admin</Link></li>
+            <li className="breadcrumb-item active" aria-current="page">Complaints</li>
+          </ol>
+        </nav>
+        <h3 className="text-body-emphasis fw-bold mb-1">Customer Complaints</h3>
+        <p className="text-muted fs-9 mb-0">Track, review, and mark customer complaints against vendor stores as resolved.</p>
       </div>
 
-      <div className="card border-translucent">
+      <div className="card border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
         <div className="card-body p-0">
           {loading ? (
-            <div className="text-center py-7"><div className="spinner-border spinner-border-sm text-primary"></div></div>
+            <div className="text-center py-5">
+              <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
           ) : complaints.length === 0 ? (
-            <div className="text-center py-7"><span className="fas fa-check-circle fs-3 text-body-quaternary d-block mb-3"></span><h5 className="text-body-tertiary">No complaints found</h5></div>
+            <div className="text-center py-5">
+              <span className="fas fa-check-circle fs-3 text-success d-block mb-3"></span>
+              <h5 className="text-muted fw-semibold mb-0">All complaints are resolved!</h5>
+              <p className="text-muted fs-10 mb-0">Everything is running smoothly on the marketplace.</p>
+            </div>
           ) : (
-            <div className="table-responsive scrollbar">
-              <table className="table table-hover table-sm fs-9 mb-0">
-                <thead>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                <thead className="table-light">
                   <tr>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 ps-3">Customer</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11">Vendor</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11">Reason</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Status</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
+                    <th className="ps-4 py-3 text-muted text-uppercase fw-bold fs-11">Customer</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Reported Store</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Reason / Details</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '130px' }}>Status</th>
+                    <th className="pe-4 py-3 text-end" style={{ width: '120px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {complaints.map(c => (
                     <tr key={c._id}>
-                      <td className="align-middle ps-3 fw-semibold">{c.customerId?.name || 'N/A'}</td>
-                      <td className="align-middle">{c.vendorId?.businessName || 'N/A'}</td>
-                      <td className="align-middle text-body-tertiary" style={{ maxWidth: 250 }}><span className="text-wrap d-inline-block" style={{ maxWidth: 250 }}>{c.reason}</span></td>
-                      <td className="align-middle text-center">
-                        <span className={`badge badge-phoenix badge-phoenix-${c.status === 'pending' ? 'warning' : 'success'} fs-10`}>
+                      <td className="ps-4 fw-semibold text-body-emphasis">
+                        {c.customerId?.name || 'Guest Customer'}
+                      </td>
+                      <td className="fw-semibold text-body-emphasis">{c.vendorId?.businessName || 'N/A'}</td>
+                      <td className="text-muted" style={{ maxWidth: 300 }}>
+                        <span className="text-wrap d-block">{c.reason}</span>
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge badge-phoenix badge-phoenix-${c.status === 'pending' ? 'warning' : 'success'} px-2 py-1 fw-bold fs-10`}>
                           {c.status}
                         </span>
                       </td>
-                      <td className="align-middle text-end pe-3">
+                      <td className="text-end pe-4">
                         {c.status === 'pending' && (
-                          <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => resolveComplaint(c._id)}>
+                          <button className="btn btn-phoenix-success btn-xs fw-bold rounded-pill" onClick={() => resolveComplaint(c._id)}>
                             <span className="fas fa-check me-1"></span>Resolve
                           </button>
                         )}

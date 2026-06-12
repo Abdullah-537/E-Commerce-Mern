@@ -17,6 +17,8 @@ export default function Profile() {
   const [newAddress, setNewAddress] = useState({ fullName: '', phone: '', street: '', city: '', province: '', postalCode: '' })
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(true)
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+  const [passwordLoading, setPasswordLoading] = useState(false)
 
   useEffect(() => {
     api.get('/users/addresses').then(res => setAddresses(res.data.data)).catch(() => {})
@@ -32,6 +34,25 @@ export default function Profile() {
       toast.success('Profile updated')
     } catch (err) { toast.error('Update failed') }
     finally { setLoading(false) }
+  }
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault()
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      return toast.error('New passwords do not match')
+    }
+    setPasswordLoading(true)
+    try {
+      await api.put('/users/profile/password', { 
+        currentPassword: passwordForm.currentPassword, 
+        newPassword: passwordForm.newPassword 
+      })
+      toast.success('Password updated successfully')
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (err) { 
+      toast.error(err.response?.data?.message || 'Password update failed') 
+    }
+    finally { setPasswordLoading(false) }
   }
 
   const deleteAddress = async (id) => {
@@ -56,7 +77,7 @@ export default function Profile() {
   const initial = user?.name?.charAt(0)?.toUpperCase() || 'U'
 
   return (
-    <section className="pt-5 pb-9">
+    <section className="pt-5 pb-9 bg-body flex-1">
       <div className="container-small">
         {/* Breadcrumb */}
         <nav className="mb-3" aria-label="breadcrumb">
@@ -202,57 +223,62 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Recent Orders */}
-            <div className="card">
-              <div className="card-header bg-body-highlight d-flex justify-content-between align-items-center">
+            {/* Change Password */}
+            <div className="card mb-5">
+              <div className="card-header bg-body-highlight">
                 <h4 className="mb-0">
-                  <span className="fas fa-shopping-bag me-2 text-primary"></span>Recent Orders
+                  <span className="fas fa-key me-2 text-primary"></span>Change Password
                 </h4>
-                <Link to="/orders" className="btn btn-sm btn-phoenix-primary">View All</Link>
               </div>
-              <div className="card-body p-0">
-                {ordersLoading ? (
-                  <div className="text-center py-5"><div className="spinner-border spinner-border-sm text-primary"></div></div>
-                ) : orders.length > 0 ? (
-                  <div className="table-responsive">
-                    <table className="table table-hover mb-0 fs-9">
-                      <thead>
-                        <tr>
-                          <th className="text-body-tertiary">Order</th>
-                          <th className="text-body-tertiary">Date</th>
-                          <th className="text-body-tertiary">Status</th>
-                          <th className="text-body-tertiary text-end">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.slice(0, 5).map(order => (
-                          <tr key={order._id}>
-                            <td>
-                              <span className="fw-semibold text-body-emphasis">#{order._id?.slice(-6).toUpperCase()}</span>
-                            </td>
-                            <td className="text-body-tertiary">{new Date(order.createdAt).toLocaleDateString()}</td>
-                            <td>
-                              <span className={`badge badge-phoenix badge-phoenix-${
-                                order.status === 'delivered' ? 'success' :
-                                order.status === 'shipped' ? 'info' :
-                                order.status === 'processing' ? 'warning' :
-                                order.status === 'cancelled' ? 'danger' : 'secondary'
-                              } fs-10`}>{order.status}</span>
-                            </td>
-                            <td className="text-end fw-semibold text-body-emphasis">PKR {order.totalAmount?.toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <div className="card-body">
+                <form onSubmit={handlePasswordUpdate}>
+                  <div className="row g-3 mb-4">
+                    <div className="col-12">
+                      <label className="form-label fs-8 text-body-highlight ps-0 text-transform-none">Current Password</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        value={passwordForm.currentPassword}
+                        onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label fs-8 text-body-highlight ps-0 text-transform-none">New Password</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        value={passwordForm.newPassword}
+                        onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        required
+                        minLength="6"
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label fs-8 text-body-highlight ps-0 text-transform-none">Confirm New Password</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        value={passwordForm.confirmPassword}
+                        onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                        required
+                        minLength="6"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-5">
-                    <span className="fas fa-box-open fs-5 text-body-quaternary d-block mb-2"></span>
-                    <p className="text-body-tertiary mb-0">No orders yet</p>
+                  <div className="d-flex gap-2">
+                    <button type="submit" className="btn btn-primary" disabled={passwordLoading}>
+                      {passwordLoading ? (
+                        <><span className="spinner-border spinner-border-sm me-1"></span>Updating...</>
+                      ) : (
+                        <>Update Password</>
+                      )}
+                    </button>
                   </div>
-                )}
+                </form>
               </div>
             </div>
+
           </div>
 
           {/* Right Column — Addresses */}
@@ -339,7 +365,61 @@ export default function Profile() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+          
+          {/* Full Width — Recent Orders */}
+          <div className="col-12">
+            <div className="card">
+              <div className="card-header bg-body-highlight d-flex justify-content-between align-items-center">
+                <h4 className="mb-0">
+                  <span className="fas fa-shopping-bag me-2 text-primary"></span>Recent Orders
+                </h4>
+                <Link to="/orders" className="btn btn-sm btn-phoenix-primary">View All</Link>
+              </div>
+              <div className="card-body p-0">
+                {ordersLoading ? (
+                  <div className="text-center py-5"><div className="spinner-border spinner-border-sm text-primary"></div></div>
+                ) : orders.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table table-hover mb-0 fs-9" style={{ minWidth: '600px' }}>
+                      <thead>
+                        <tr>
+                          <th className="text-body-tertiary ps-4">Order</th>
+                          <th className="text-body-tertiary">Date</th>
+                          <th className="text-body-tertiary">Status</th>
+                          <th className="text-body-tertiary text-end pe-4">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.slice(0, 5).map(order => (
+                          <tr key={order._id}>
+                            <td className="ps-4">
+                              <span className="fw-semibold text-body-emphasis">#{order._id?.slice(-6).toUpperCase()}</span>
+                            </td>
+                            <td className="text-body-tertiary">{new Date(order.createdAt).toLocaleDateString()}</td>
+                            <td>
+                              <span className={`badge badge-phoenix badge-phoenix-${
+                                order.status === 'delivered' ? 'success' :
+                                order.status === 'shipped' ? 'info' :
+                                order.status === 'processing' ? 'warning' :
+                                order.status === 'cancelled' ? 'danger' : 'secondary'
+                              } fs-10`}>{order.status}</span>
+                            </td>
+                            <td className="text-end fw-semibold text-body-emphasis pe-4">PKR {order.totalAmount?.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-5">
+                    <span className="fas fa-box-open fs-5 text-body-quaternary d-block mb-2"></span>
+                    <p className="text-body-tertiary mb-0">No orders yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
         </div> {/* close col-lg-9 */}
         </div> {/* close row */}

@@ -25,33 +25,41 @@ export default function Categories() {
   }
   flatten(categories)
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB')
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setForm({ ...form, imagePreview: reader.result, imageUrl: reader.result })
-    }
-    reader.readAsDataURL(file)
-  }
+  const iconOptions = [
+    { value: 'folder', label: 'Default Folder' },
+    { value: 'tv', label: 'Electronics / TV' },
+    { value: 'laptop', label: 'Computers' },
+    { value: 'mobile-alt', label: 'Phones & Tablets' },
+    { value: 'tshirt', label: 'Clothing' },
+    { value: 'shoe-prints', label: 'Footwear' },
+    { value: 'home', label: 'Home & Living' },
+    { value: 'couch', label: 'Furniture' },
+    { value: 'car', label: 'Automotive' },
+    { value: 'book', label: 'Books & Stationery' },
+    { value: 'gamepad', label: 'Gaming' },
+    { value: 'basketball-ball', label: 'Sports' },
+    { value: 'shopping-basket', label: 'Groceries' },
+    { value: 'gift', label: 'Gifts & Toys' },
+    { value: 'heart', label: 'Health & Beauty' },
+    { value: 'gem', label: 'Jewelry' },
+    { value: 'camera', label: 'Photography' }
+  ]
 
   const openEdit = (cat) => {
     setEditId(cat._id)
-    setForm({ name: cat.name, parentId: cat.parentId || '', imagePreview: cat.imageUrl || '', imageUrl: '' })
+    setForm({ name: cat.name, parentId: cat.parentId || '', imageUrl: cat.imageUrl || 'folder' })
     setShowForm(true)
   }
 
   const openAdd = (parentId = '') => {
     setEditId(null)
-    setForm({ name: '', parentId, imagePreview: '', imageUrl: '' })
+    setForm({ name: '', parentId, imageUrl: 'folder' })
     setShowForm(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const payload = { name: form.name, parentId: form.parentId || null }
-    if (form.imageUrl) payload.imageUrl = form.imageUrl
+    const payload = { name: form.name, parentId: form.parentId || null, imageUrl: form.imageUrl || 'folder' }
 
     try {
       if (editId) {
@@ -63,7 +71,7 @@ export default function Categories() {
       }
       setShowForm(false)
       setEditId(null)
-      setForm({ name: '', parentId: '', imagePreview: '', imageUrl: '' })
+      setForm({ name: '', parentId: '', imageUrl: 'folder' })
       fetchCategories()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed')
@@ -83,33 +91,33 @@ export default function Categories() {
 
   const renderCategory = (cat, depth = 0) => (
     <div key={cat._id}>
-      <div className={`card mb-2 border-translucent ${depth > 0 ? '' : ''}`} style={{ marginLeft: depth * 24 }}>
+      <div className="card mb-3 border-translucent shadow-sm" style={{ 
+        marginLeft: depth * 28,
+        borderRadius: '12px',
+        borderLeft: depth > 0 ? '4px solid #0051d4' : '1px solid var(--phoenix-border-color)'
+      }}>
         <div className="card-body py-3 d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center gap-3">
-            {cat.imageUrl ? (
-              <img src={cat.imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
-            ) : (
-              <div className="d-flex align-items-center justify-content-center bg-body-highlight rounded-2" style={{ width: 44, height: 44 }}>
-                <span className="fas fa-folder text-body-quaternary"></span>
-              </div>
-            )}
+            <div className="d-flex align-items-center justify-content-center bg-body-highlight rounded-3" style={{ width: 48, height: 48, border: '1px solid #e2e8f0' }}>
+              <span className={`fas fa-${cat.imageUrl && !cat.imageUrl.startsWith('data:') && !cat.imageUrl.startsWith('http') ? cat.imageUrl : 'folder'} text-primary fs-6`}></span>
+            </div>
             <div>
-              <h6 className="mb-0 text-body-emphasis">
-                {depth > 0 && <span className="fas fa-level-up-alt fa-rotate-90 me-1 text-body-quaternary fs-10"></span>}
+              <h6 className="mb-0 text-body-emphasis fw-bold">
+                {depth > 0 && <span className="fas fa-level-up-alt fa-rotate-90 me-2 text-muted fs-11"></span>}
                 {cat.name}
               </h6>
-              <small className="text-body-tertiary fs-10">{cat.slug}</small>
+              <span className="text-muted fs-10 fw-semibold">{cat.slug}</span>
             </div>
           </div>
-          <div className="d-flex gap-1">
-            <button className="btn btn-sm btn-phoenix-primary py-0 px-2" onClick={() => openAdd(cat._id)} title="Add Subcategory">
-              <span className="fas fa-plus fs-10"></span>
+          <div className="d-flex gap-2">
+            <button className="btn btn-phoenix-primary btn-xs rounded-circle p-2" onClick={() => openAdd(cat._id)} title="Add Subcategory">
+              <span className="fas fa-plus"></span>
             </button>
-            <button className="btn btn-sm btn-phoenix-secondary py-0 px-2" onClick={() => openEdit(cat)} title="Edit">
-              <span className="fas fa-edit fs-10"></span>
+            <button className="btn btn-phoenix-secondary btn-xs rounded-circle p-2" onClick={() => openEdit(cat)} title="Edit">
+              <span className="fas fa-edit"></span>
             </button>
-            <button className="btn btn-sm btn-phoenix-danger py-0 px-2" onClick={() => deleteCategory(cat._id)} title="Delete">
-              <span className="fas fa-trash-alt fs-10"></span>
+            <button className="btn btn-phoenix-danger btn-xs rounded-circle p-2" onClick={() => deleteCategory(cat._id)} title="Delete">
+              <span className="fas fa-trash-alt"></span>
             </button>
           </div>
         </div>
@@ -119,61 +127,79 @@ export default function Categories() {
   )
 
   return (
-    <div>
+    <div className="pb-5">
+      {/* Page Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-          <h3 className="mb-1 text-body-emphasis">Categories</h3>
-          <p className="text-body-tertiary fs-9 mb-0">Manage product categories and subcategories</p>
+          <h3 className="mb-1 text-body-emphasis fw-bold">Marketplace Categories</h3>
+          <p className="text-muted fs-9 mb-0">Organize and structure items across the store catalog.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => openAdd()}>
-          <span className="fas fa-plus me-1"></span> Add Category
+        <button className="btn btn-primary fw-bold rounded-pill" onClick={() => openAdd()}>
+          <span className="fas fa-plus me-2"></span>Add Category
         </button>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add/Edit Form Card */}
       {showForm && (
-        <div className="card mb-4 border-primary border-opacity-25">
-          <div className="card-header bg-body-highlight">
-            <h5 className="mb-0 text-body-emphasis">
+        <div className="card mb-4 border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
+          <div className="card-header bg-white border-bottom border-translucent py-3">
+            <h5 className="mb-0 text-body-emphasis fw-bold">
               <span className={`fas fa-${editId ? 'edit' : 'plus-circle'} me-2 text-primary`}></span>
-              {editId ? 'Edit Category' : form.parentId ? 'Add Subcategory' : 'Add Category'}
+              {editId ? 'Edit Category Node' : form.parentId ? 'Add Child Category' : 'Create Top-Level Category'}
             </h5>
           </div>
-          <div className="card-body">
+          <div className="card-body p-4">
             <form onSubmit={handleSubmit}>
               <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label fs-8 text-body-highlight">Category Name</label>
-                  <input className="form-control" placeholder="e.g. Electronics" value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })} required />
+                <div className="col-12 col-md-4">
+                  <label className="form-label text-muted fw-bold fs-10 uppercase">Category Name</label>
+                  <input 
+                    type="text"
+                    className="form-control bg-body-highlight border-translucent" 
+                    placeholder="e.g. Smart Electronics" 
+                    value={form.name}
+                    onChange={e => setForm({ ...form, name: e.target.value })} 
+                    required 
+                  />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label fs-8 text-body-highlight">Parent Category (optional)</label>
-                  <select className="form-select" value={form.parentId}
-                    onChange={e => setForm({ ...form, parentId: e.target.value })}>
+                <div className="col-12 col-md-4">
+                  <label className="form-label text-muted fw-bold fs-10 uppercase">Parent Category</label>
+                  <select 
+                    className="form-select bg-body-highlight border-translucent fw-semibold text-body-emphasis" 
+                    value={form.parentId}
+                    onChange={e => setForm({ ...form, parentId: e.target.value })}
+                  >
                     <option value="">— No Parent (Top Level) —</option>
                     {flatCategories.map(c => (
                       <option key={c._id} value={c._id}>
-                        {'—'.repeat(c.depth)} {c.name}
+                        {'— '.repeat(c.depth)} {c.name}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label fs-8 text-body-highlight">Category Image</label>
-                  <input type="file" className="form-control" accept="image/*" onChange={handleImageChange} />
-                </div>
-                <div className="col-md-6 d-flex align-items-end">
-                  {form.imagePreview && (
-                    <img src={form.imagePreview} alt="Preview" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }} />
-                  )}
+                <div className="col-12 col-md-4">
+                  <label className="form-label text-muted fw-bold fs-10 uppercase">Category Icon</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-body-highlight border-translucent">
+                      <span className={`fas fa-${form.imageUrl || 'folder'}`}></span>
+                    </span>
+                    <select 
+                      className="form-select bg-body-highlight border-translucent text-body-emphasis" 
+                      value={form.imageUrl}
+                      onChange={e => setForm({ ...form, imageUrl: e.target.value })}
+                    >
+                      {iconOptions.map(icon => (
+                        <option key={icon.value} value={icon.value}>{icon.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div className="d-flex gap-2 mt-3">
-                <button type="submit" className="btn btn-primary">
-                  {editId ? 'Update' : 'Create'} Category
+              <div className="d-flex gap-2 mt-4">
+                <button type="submit" className="btn btn-primary fw-bold">
+                  {editId ? 'Update Node' : 'Add Category'}
                 </button>
-                <button type="button" className="btn btn-phoenix-secondary" onClick={() => { setShowForm(false); setEditId(null) }}>
+                <button type="button" className="btn btn-phoenix-secondary fw-bold" onClick={() => { setShowForm(false); setEditId(null) }}>
                   Cancel
                 </button>
               </div>
@@ -184,17 +210,21 @@ export default function Categories() {
 
       {/* Categories List */}
       {loading ? (
-        <div className="text-center py-5"><div className="spinner-border text-primary"></div></div>
+        <div className="text-center py-5">
+          <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
       ) : categories.length === 0 ? (
         <div className="text-center py-5">
-          <span className="fas fa-folder-open fs-3 text-body-quaternary d-block mb-3"></span>
-          <h5 className="text-body-tertiary">No categories yet</h5>
-          <p className="text-body-quaternary mb-3">Start by adding your first category</p>
-          <button className="btn btn-sm btn-primary" onClick={() => openAdd()}>Add First Category</button>
+          <span className="fas fa-folder-open fs-3 text-muted d-block mb-3"></span>
+          <h5 className="text-muted fw-semibold">No category listings yet</h5>
+          <p className="text-muted fs-10 mb-4">Start by adding your first category structure.</p>
+          <button className="btn btn-primary btn-sm fw-bold px-4 py-2" onClick={() => openAdd()}>Add First Category</button>
         </div>
       ) : (
-        <div>
-          {categories.map(cat => renderCategory(cat))}
+        <div className="row">
+          <div className="col-12">
+            {categories.map(cat => renderCategory(cat))}
+          </div>
         </div>
       )}
     </div>

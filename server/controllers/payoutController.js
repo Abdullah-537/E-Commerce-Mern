@@ -55,7 +55,7 @@ exports.getAllPayouts = async (req, res, next) => {
     if (status) filter.status = status;
 
     const payouts = await Payout.find(filter)
-      .populate('vendorId', 'businessName')
+      .populate('vendorId', 'businessName businessEmail logo')
       .sort({ requestedAt: -1 });
 
     res.status(200).json({ success: true, data: payouts });

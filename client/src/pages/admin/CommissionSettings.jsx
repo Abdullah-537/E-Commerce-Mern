@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
+import { getAvatarColor } from '../../utils/avatarHelper'
 
 export default function CommissionSettings() {
   const [globalRate, setGlobalRate] = useState(10)
@@ -36,91 +37,144 @@ export default function CommissionSettings() {
   const statusColors = { approved: 'success', pending: 'warning', banned: 'danger' }
 
   return (
-    <div>
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-          <nav aria-label="breadcrumb"><ol className="breadcrumb mb-1"><li className="breadcrumb-item"><Link to="/admin">Admin</Link></li><li className="breadcrumb-item active">Commission</li></ol></nav>
-          <h3 className="text-body-emphasis mb-0">Commission Settings</h3>
-        </div>
+    <div className="pb-5">
+      {/* Page Header */}
+      <div className="mb-4">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb mb-2" style={{ fontSize: '0.8rem' }}>
+            <li className="breadcrumb-item"><Link to="/admin" className="text-decoration-none">Admin</Link></li>
+            <li className="breadcrumb-item active" aria-current="page">Commission Settings</li>
+          </ol>
+        </nav>
+        <h3 className="text-body-emphasis fw-bold mb-1">Commission Settings</h3>
+        <p className="text-muted fs-9 mb-0">Configure the marketplace commission fee deduction rates globally or customize per-vendor overrides.</p>
       </div>
 
-      {/* Global Rate Card */}
-      <div className="card border-translucent mb-4">
-        <div className="card-header bg-body-highlight border-bottom border-translucent">
-          <h5 className="mb-0 text-body-emphasis"><span className="fas fa-percentage me-2 text-primary"></span>Global Commission Rate</h5>
-        </div>
-        <div className="card-body">
-          <p className="text-body-tertiary mb-3 fs-9">This rate applies to all vendors without a custom override.</p>
-          <div className="d-flex align-items-center gap-3">
-            <div className="input-group" style={{ maxWidth: 160 }}>
-              <input type="number" className="form-control bg-body-highlight border-translucent" value={globalRate} onChange={e => setGlobalRate(e.target.value)} min={0} max={100} />
-              <span className="input-group-text border-translucent">%</span>
+      <div className="row g-4">
+        {/* Global Rate Card */}
+        <div className="col-12 col-xl-4">
+          <div className="card border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
+            <div className="card-header bg-white border-bottom border-translucent py-3">
+              <h5 className="mb-0 text-body-emphasis fw-bold">
+                <span className="fas fa-percentage me-2 text-primary"></span>Global Rate
+              </h5>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={updateGlobalRate}>
-              <span className="fas fa-save me-1"></span>Save
-            </button>
+            <div className="card-body p-4">
+              <p className="text-muted mb-4 fs-9">This commission percentage will be applied automatically to all sales from stores that do not have custom rate overrides.</p>
+              <div className="d-flex align-items-center gap-3">
+                <div className="input-group" style={{ maxWidth: '140px' }}>
+                  <input 
+                    type="number" 
+                    className="form-control text-center fw-bold fs-8" 
+                    value={globalRate} 
+                    onChange={e => setGlobalRate(e.target.value)} 
+                    min={0} 
+                    max={100} 
+                  />
+                  <span className="input-group-text bg-light fw-bold border-translucent">%</span>
+                </div>
+                <button className="btn btn-primary fw-bold" onClick={updateGlobalRate}>
+                  <span className="fas fa-save me-2"></span>Apply Global
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Per-Vendor Table */}
-      <div className="card border-translucent">
-        <div className="card-header bg-body-highlight border-bottom border-translucent">
-          <h5 className="mb-0 text-body-emphasis"><span className="fas fa-sliders-h me-2 text-info"></span>Per-Vendor Overrides</h5>
-        </div>
-        <div className="card-body p-0">
-          {loading ? (
-            <div className="text-center py-7"><div className="spinner-border spinner-border-sm text-primary"></div></div>
-          ) : vendors.length === 0 ? (
-            <div className="text-center py-7"><p className="text-body-tertiary mb-0">No vendors registered yet</p></div>
-          ) : (
-            <div className="table-responsive scrollbar">
-              <table className="table table-hover table-sm fs-9 mb-0">
-                <thead>
-                  <tr>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 ps-3">Vendor</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Status</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Commission Rate</th>
-                    <th className="align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vendors.map(v => (
-                    <tr key={v._id}>
-                      <td className="align-middle ps-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-s"><div className="avatar-name rounded-circle bg-success-subtle text-success"><span className="fs-10">{v.businessName?.charAt(0)}</span></div></div>
-                          <span className="fw-semibold text-body-emphasis">{v.businessName}</span>
-                        </div>
-                      </td>
-                      <td className="align-middle text-center"><span className={`badge badge-phoenix badge-phoenix-${statusColors[v.status] || 'secondary'} fs-10`}>{v.status}</span></td>
-                      <td className="align-middle text-center">
-                        {editingVendor === v._id ? (
-                          <div className="d-flex gap-2 justify-content-center">
-                            <div className="input-group input-group-sm" style={{ width: 100 }}>
-                              <input type="number" className="form-control bg-body-highlight border-translucent text-center" value={vendorRate} onChange={e => setVendorRate(e.target.value)} min={0} max={100} />
-                              <span className="input-group-text border-translucent">%</span>
-                            </div>
-                            <button className="btn btn-phoenix-success btn-sm px-2 py-0" onClick={() => updateVendorRate(v._id)}><span className="fas fa-check"></span></button>
-                            <button className="btn btn-phoenix-secondary btn-sm px-2 py-0" onClick={() => setEditingVendor(null)}><span className="fas fa-times"></span></button>
-                          </div>
-                        ) : (
-                          <span className="fw-bold text-body-emphasis">{v.commissionRate || globalRate}%</span>
-                        )}
-                      </td>
-                      <td className="align-middle text-end pe-3">
-                        {editingVendor !== v._id && (
-                          <button className="btn btn-phoenix-primary btn-sm px-2 py-0 fs-10" onClick={() => { setEditingVendor(v._id); setVendorRate(v.commissionRate || '') }}>
-                            <span className="fas fa-edit me-1"></span>Edit
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Per-Vendor Overrides */}
+        <div className="col-12 col-xl-8">
+          <div className="card border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
+            <div className="card-header bg-white border-bottom border-translucent py-3">
+              <h5 className="mb-0 text-body-emphasis fw-bold">
+                <span className="fas fa-sliders-h me-2 text-info"></span>Store Commission Overrides
+              </h5>
             </div>
-          )}
+            <div className="card-body p-0">
+              {loading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+                </div>
+              ) : vendors.length === 0 ? (
+                <div className="text-center py-5">
+                  <span className="fas fa-store fs-3 text-muted d-block mb-2"></span>
+                  <p className="text-muted mb-0 fw-semibold">No registered vendors found.</p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                    <thead className="table-light">
+                      <tr>
+                        <th className="ps-4 py-3 text-muted text-uppercase fw-bold fs-11">Store Details</th>
+                        <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '130px' }}>Status</th>
+                        <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '180px' }}>Commission Rate</th>
+                        <th className="pe-4 py-3 text-end" style={{ width: '120px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vendors.map(v => (
+                        <tr key={v._id}>
+                          <td className="ps-4">
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="avatar avatar-m overflow-hidden">
+                                {v.logo ? (
+                                  <img className="rounded-circle w-100 h-100" src={v.logo} alt="" style={{ objectFit: 'cover' }} />
+                                ) : (
+                                  <div className={`avatar-name rounded-circle bg-${getAvatarColor(v.businessName)}-subtle text-${getAvatarColor(v.businessName)} fw-bold w-100 h-100 d-flex align-items-center justify-content-center`}>
+                                    <span>{v.businessName?.charAt(0).toUpperCase()}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <h6 className="mb-0 fw-semibold text-body-emphasis">{v.businessName}</h6>
+                                <span className="text-muted fs-10">{v.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            <span className={`badge badge-phoenix badge-phoenix-${statusColors[v.status] || 'secondary'} px-2 py-1 fw-bold fs-10`}>
+                              {v.status}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            {editingVendor === v._id ? (
+                              <div className="d-flex gap-2 justify-content-center align-items-center">
+                                <div className="input-group input-group-sm" style={{ width: '100px' }}>
+                                  <input 
+                                    type="number" 
+                                    className="form-control text-center fw-bold" 
+                                    value={vendorRate} 
+                                    onChange={e => setVendorRate(e.target.value)} 
+                                    min={0} 
+                                    max={100} 
+                                  />
+                                  <span className="input-group-text bg-light fw-bold border-translucent">%</span>
+                                </div>
+                                <button className="btn btn-phoenix-success btn-sm px-2 py-1 rounded" onClick={() => updateVendorRate(v._id)}>
+                                  <span className="fas fa-check"></span>
+                                </button>
+                                <button className="btn btn-phoenix-secondary btn-sm px-2 py-1 rounded" onClick={() => setEditingVendor(null)}>
+                                  <span className="fas fa-times"></span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="fw-bold text-body-emphasis">{v.commissionRate || globalRate}%</span>
+                            )}
+                          </td>
+                          <td className="text-end pe-4">
+                            {editingVendor !== v._id && (
+                              <button className="btn btn-phoenix-primary btn-xs fw-bold rounded-pill" onClick={() => { setEditingVendor(v._id); setVendorRate(v.commissionRate || '') }}>
+                                <span className="fas fa-edit me-1"></span>Override
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,9 @@ import { toast } from 'react-toastify'
 import { useEffect, useState } from 'react'
 import api from '../../store/api/baseApi'
 import NotificationDropdown from './NotificationDropdown'
+import Logo from '../common/Logo'
+import { getAvatarColor } from '../../utils/avatarHelper'
+
 
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: 'fas fa-chart-pie', exact: true },
@@ -94,7 +97,7 @@ export default function AdminLayout({ children }) {
     return location.pathname.startsWith(item.path)
   }
 
-  const avatarSrc = user?.avatar || '/assets/img/team/avatar.webp'
+  const avatarSrc = user?.avatar
 
   return (
     <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
@@ -102,11 +105,8 @@ export default function AdminLayout({ children }) {
       <nav className="navbar navbar-expand-lg bg-body-emphasis border-bottom border-translucent px-3 px-lg-4" style={{ position: 'sticky', top: 0, zIndex: 1030 }}>
         <div className="container-fluid">
           {/* Logo */}
-          <Link to="/admin" className="navbar-brand d-flex align-items-center text-decoration-none">
-            <img src="/assets/img/icons/logo.png" alt="ShopZone" width="27" />
-            <span className="fw-bolder text-body-emphasis fs-7 ms-2">ShopZone</span>
-            <span className="badge badge-phoenix badge-phoenix-danger ms-2 fs-10">Admin</span>
-          </Link>
+          <Logo size="sm" link={true} adminBadge={true} />
+
 
           {/* Hamburger for mobile */}
           <button
@@ -161,8 +161,14 @@ export default function AdminLayout({ children }) {
                   className="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none"
                   onClick={(e) => { e.stopPropagation(); setProfileDropdown(!profileDropdown) }}
                 >
-                  <div className="avatar avatar-m">
-                    <img className="rounded-circle" src={avatarSrc} alt="" style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                  <div className="d-flex align-items-center justify-content-center rounded-circle border border-translucent overflow-hidden" style={{ width: 38, height: 38 }}>
+                    {avatarSrc ? (
+                      <img className="rounded-circle w-100 h-100" src={avatarSrc} alt="" style={{ objectFit: 'cover' }} />
+                    ) : (
+                      <div className={`rounded-circle bg-${getAvatarColor(user?.name)}-subtle text-${getAvatarColor(user?.name)} fw-bold w-100 h-100 d-flex align-items-center justify-content-center`}>
+                        <span className="fs-9">{user?.name?.charAt(0).toUpperCase() || 'A'}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="d-none d-md-block text-start">
                     <h6 className="mb-0 text-body-emphasis fs-10 lh-1">{user?.name || 'Admin'}</h6>
@@ -183,6 +189,9 @@ export default function AdminLayout({ children }) {
                     </div>
                     <Link className="dropdown-item py-2 fs-9" to="/admin" onClick={() => setProfileDropdown(false)}>
                       <span className="fas fa-chart-pie me-2 text-body-quaternary"></span>Dashboard
+                    </Link>
+                    <Link className="dropdown-item py-2 fs-9" to="/profile" onClick={() => setProfileDropdown(false)}>
+                      <span className="fas fa-user-cog me-2 text-body-quaternary"></span>Profile Settings
                     </Link>
                     <Link className="dropdown-item py-2 fs-9" to="/" onClick={() => setProfileDropdown(false)}>
                       <span className="fas fa-store me-2 text-body-quaternary"></span>Visit Store

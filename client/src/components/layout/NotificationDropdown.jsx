@@ -43,8 +43,45 @@ export default function NotificationDropdown() {
     } catch (e) {}
   };
 
-  if (!isAuthenticated) return null;
-
+  if (!isAuthenticated) {
+    return (
+      <li className="nav-item dropdown feather-icon-wait" style={{height: '40px'}}>
+        <a 
+          className="nav-link px-2 icon-indicator icon-indicator-sm"
+          href="#" 
+          role="button" 
+          onClick={(e) => { e.preventDefault(); setIsOpen(!isOpen); }}
+        >
+          <span className="fas fa-bell text-body-tertiary fs-8"></span>
+        </a>
+        
+        {isOpen && (
+          <div 
+            className="dropdown-menu dropdown-menu-end notification-dropdown-menu py-0 shadow border navbar-dropdown-caret mt-2 show"
+            style={{ position: 'absolute', right: 0, width: 320, zIndex: 1050 }}
+          >
+            <div className="card position-relative border-0">
+              <div className="card-header p-2">
+                <h5 className="text-body-emphasis mb-0">Notifications</h5>
+              </div>
+              <div className="card-body p-4 text-center">
+                <p className="text-body-tertiary mb-3">Login to receive notifications</p>
+                <Link to="/login" className="btn btn-primary btn-sm" onClick={() => setIsOpen(false)}>Sign In</Link>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {isOpen && (
+          <div 
+            className="position-fixed top-0 start-0 w-100 h-100" 
+            style={{ zIndex: 1040 }} 
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </li>
+    );
+  }
   return (
     <li className="nav-item dropdown feather-icon-wait" style={{height: '40px'}}>
       <a 

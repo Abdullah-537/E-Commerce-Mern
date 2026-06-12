@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import api from '../../store/api/baseApi'
 import { toast } from 'react-toastify'
+import { getAvatarColor } from '../../utils/avatarHelper'
 
 export default function VendorStorefront() {
   const { slug } = useParams()
@@ -132,10 +133,10 @@ export default function VendorStorefront() {
             <div className="row align-items-center g-4">
               <div className="col-auto">
                 {vendor.logo ? (
-                  <img src={vendor.logo} alt={vendor.businessName} className="rounded-circle" style={{ width: 80, height: 80, objectFit: 'cover' }} />
+                  <img src={vendor.logo} alt={vendor.businessName} className="rounded-circle border border-translucent shadow-sm" style={{ width: 80, height: 80, objectFit: 'cover' }} />
                 ) : (
-                  <div className="avatar avatar-4xl">
-                    <div className="avatar-name rounded-circle" style={{ width: 80, height: 80, fontSize: '2rem' }}>
+                  <div className="avatar avatar-4xl overflow-hidden">
+                    <div className={`avatar-name rounded-circle bg-${getAvatarColor(vendor.businessName)}-subtle text-${getAvatarColor(vendor.businessName)} fw-bold w-100 h-100 d-flex align-items-center justify-content-center`} style={{ fontSize: '2rem' }}>
                       <span>{initial}</span>
                     </div>
                   </div>

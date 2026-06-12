@@ -1,6 +1,6 @@
 const sendWhatsApp = async (to, body) => {
-  if (!process.env.GREEN_API_ID_INSTANCE || !process.env.GREEN_API_TOKEN) {
-    console.log('\n=== WhatsApp Message (Green API not configured) ===');
+  if (!process.env.ULTRAMSG_INSTANCE_ID || !process.env.ULTRAMSG_TOKEN) {
+    console.log('\n=== WhatsApp Message (Ultramsg not configured) ===');
     console.log(`To: ${to}`);
     console.log(`Message: ${body}`);
     console.log('================================================\n');
@@ -15,23 +15,23 @@ const sendWhatsApp = async (to, body) => {
     formattedNumber = '92' + formattedNumber.substring(1);
   }
   
-  console.log(`[WHATSAPP] Sending to: ${formattedNumber}@c.us`);
-  const chatId = `${formattedNumber}@c.us`;
+  console.log(`[WHATSAPP] Sending to: +${formattedNumber}`);
 
-  // Ensure URL doesn't have a double slash
-  const baseUrl = process.env.GREEN_API_URL.replace(/\/$/, '');
-  const url = `${baseUrl}/waInstance${process.env.GREEN_API_ID_INSTANCE}/sendMessage/${process.env.GREEN_API_TOKEN}`;
+  const url = `https://api.ultramsg.com/${process.env.ULTRAMSG_INSTANCE_ID}/messages/chat`;
+
+  // Ultramsg uses x-www-form-urlencoded typically, but also supports JSON
+  const params = new URLSearchParams();
+  params.append('token', process.env.ULTRAMSG_TOKEN);
+  params.append('to', `+${formattedNumber}`);
+  params.append('body', body);
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: JSON.stringify({
-        chatId: chatId,
-        message: body
-      })
+      body: params
     });
     
     const text = await response.text();
@@ -44,7 +44,7 @@ const sendWhatsApp = async (to, body) => {
     
     return data;
   } catch (error) {
-    console.error('Error sending Green API WhatsApp:', error);
+    console.error('Error sending Ultramsg WhatsApp:', error);
     // Don't throw, just log so the order still completes even if WhatsApp fails
     return { error: error.message };
   }

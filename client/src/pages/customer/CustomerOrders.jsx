@@ -32,7 +32,7 @@ export default function CustomerOrders() {
   }
 
   return (
-    <section className="pt-5 pb-9">
+    <section className="pt-5 pb-9 bg-body flex-1">
       <div className="container-small">
         <nav className="mb-2" aria-label="breadcrumb">
           <ol className="breadcrumb mb-0">

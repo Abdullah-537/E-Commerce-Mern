@@ -56,9 +56,22 @@ exports.register = async (req, res, next) => {
 
     // Send email
     const message = `
-      <h2>Welcome to ShopZone!</h2>
-      <p>Your verification code is: <strong>${otp}</strong></p>
-      <p>This code will expire in 10 minutes.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #f9f9f9;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2; margin: 0;">ShopZone</h1>
+        </div>
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <h2 style="color: #333333; margin-top: 0;">Welcome to ShopZone!</h2>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">We are thrilled to have you. Please use the verification code below to complete your registration:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="display: inline-block; padding: 15px 30px; font-size: 24px; font-weight: bold; color: #ffffff; background-color: #4a90e2; border-radius: 5px; letter-spacing: 2px;">${otp}</span>
+          </div>
+          <p style="color: #777777; font-size: 14px; text-align: center;">This code will expire in <strong>10 minutes</strong>.</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #999999; font-size: 12px;">
+          <p>&copy; 2026 ShopZone. All rights reserved.</p>
+        </div>
+      </div>
     `;
 
     try {
@@ -279,10 +292,23 @@ exports.forgotPassword = async (req, res, next) => {
     // Send email
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
     const message = `
-      <h2>Password Reset Request</h2>
-      <p>Click the link below to reset your password:</p>
-      <a href="${resetUrl}">${resetUrl}</a>
-      <p>This link expires in 10 minutes.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #f9f9f9;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2; margin: 0;">ShopZone</h1>
+        </div>
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <h2 style="color: #333333; margin-top: 0;">Password Reset Request</h2>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">We received a request to reset your password. Click the button below to proceed:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="display: inline-block; padding: 15px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #4a90e2; border-radius: 5px; text-decoration: none;">Reset Password</a>
+          </div>
+          <p style="color: #777777; font-size: 14px; text-align: center;">This link will expire in <strong>10 minutes</strong>.</p>
+          <p style="color: #777777; font-size: 12px; text-align: center; margin-top: 20px;">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #999999; font-size: 12px;">
+          <p>&copy; 2026 ShopZone. All rights reserved.</p>
+        </div>
+      </div>
     `;
 
     try {

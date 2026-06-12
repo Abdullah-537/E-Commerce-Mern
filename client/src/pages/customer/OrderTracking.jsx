@@ -24,15 +24,15 @@ export default function OrderTracking() {
   const current = order ? steps.findIndex(s => s.id === order.status) : -1
 
   if (loading) return (
-    <section className="pt-5 pb-9"><div className="container-small"><div className="text-center py-5"><div className="spinner-border text-primary"></div></div></div></section>
+    <section className="pt-5 pb-9 bg-body flex-1"><div className="container-small"><div className="text-center py-5"><div className="spinner-border text-primary"></div></div></div></section>
   )
   
   if (!order) return (
-    <section className="pt-5 pb-9"><div className="container-small"><div className="text-center py-5"><h4>Order not found</h4></div></div></section>
+    <section className="pt-5 pb-9 bg-body flex-1"><div className="container-small"><div className="text-center py-5"><h4>Order not found</h4></div></div></section>
   )
 
   return (
-    <section className="pt-5 pb-9">
+    <section className="pt-5 pb-9 bg-body flex-1">
       <div className="container-small">
         <nav className="mb-2" aria-label="breadcrumb">
           <ol className="breadcrumb mb-0">

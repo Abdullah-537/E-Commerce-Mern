@@ -294,11 +294,58 @@ exports.verifyOTP = async (req, res, next) => {
 
     // Send confirmation email
     const user = req.user;
-    await sendEmail(
-      user.email,
-      'Order Confirmed - ShopZone',
-      `<h2>Your order #${order._id} is confirmed!</h2><p>We're preparing it for shipment.</p>`
-    );
+    
+    // Build order items HTML for email
+    await order.populate('items.productId', 'name images');
+    let itemsHtml = '';
+    order.items.forEach(item => {
+      const imgUrl = item.productId?.images?.[0] || 'https://via.placeholder.com/60';
+      itemsHtml += `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+            <img src="${imgUrl}" alt="${item.productName}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;" />
+          </td>
+          <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+            <strong>${item.productName}</strong><br/>
+            <span style="color: #888;">Qty: ${item.quantity}</span>
+          </td>
+          <td style="padding: 10px; border-bottom: 1px solid #eeeeee; text-align: right;">
+            <strong>PKR ${(item.price * item.quantity).toLocaleString()}</strong>
+          </td>
+        </tr>
+      `;
+    });
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #f9f9f9;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2; margin: 0;">ShopZone</h1>
+        </div>
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <h2 style="color: #333333; margin-top: 0; text-align: center;">Order Confirmed! 🎉</h2>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">Hi ${user.name || 'Valued Customer'},</p>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">Thank you for your order! We've received it and are currently processing it. Here are the details:</p>
+          
+          <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-radius: 5px;">
+            <p style="margin: 0; color: #333;"><strong>Order ID:</strong> #${order._id.toString().slice(-8).toUpperCase()}</p>
+            <p style="margin: 5px 0 0 0; color: #333;"><strong>Total Amount:</strong> PKR ${order.totalAmount.toLocaleString()}</p>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            ${itemsHtml}
+          </table>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/order/${order._id}" style="display: inline-block; padding: 12px 25px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #4a90e2; border-radius: 5px; text-decoration: none;">View Order Details</a>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #999999; font-size: 12px;">
+          <p>&copy; 2026 ShopZone. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml);
 
     const { createNotification } = require('../utils/notificationHelper');
     // Notify customer
@@ -532,25 +579,73 @@ exports.updateStatus = async (req, res, next) => {
     const user = await require('../models/User').findById(order.customerId);
     if (user) {
       await order.populate('items.productId', 'name images');
-      let message = `<p>Your order status has been updated to: <strong>${status.toUpperCase()}</strong></p>`;
+      let itemsHtml = '';
+      order.items.forEach(item => {
+        const imgUrl = item.productId?.images?.[0] || 'https://via.placeholder.com/60';
+        itemsHtml += `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+              <img src="${imgUrl}" alt="${item.productName}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;" />
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+              <strong>${item.productName}</strong><br/>
+              <span style="color: #888;">Qty: ${item.quantity}</span>
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eeeeee; text-align: right;">
+              <strong>PKR ${(item.price * item.quantity).toLocaleString()}</strong>
+            </td>
+          </tr>
+        `;
+      });
+
+      let statusMessage = '';
+      let headerColor = '#4a90e2';
+      let title = `Order ${status.toUpperCase()}`;
       
       if (status === 'shipped') {
-         message += `<p>Great news! Your order is on its way. Track your package soon.</p>`;
+         statusMessage = `Great news! Your order is on its way.`;
       } else if (status === 'delivered') {
-         message += `<p>Your order has been delivered! We hope you love your products.</p>`;
+         statusMessage = `Your order has been delivered! We hope you love your products.`;
+         headerColor = '#28a745';
+         title = 'Order Delivered! 🎉';
       } else if (status === 'cancelled') {
          const cancelReason = req.body.reason || 'No specific reason provided.';
-         message += `<p>Your order has been cancelled.</p><p>Reason: ${cancelReason}</p>`;
+         statusMessage = `Your order has been cancelled. Reason: ${cancelReason}`;
+         headerColor = '#dc3545';
+         title = 'Order Cancelled';
+      } else {
+         statusMessage = `Your order status has been updated to: <strong>${status.toUpperCase()}</strong>`;
       }
 
-      message += `<h3>Order Items:</h3><ul>`;
-      order.items.forEach(item => {
-        const productName = item.productId ? item.productId.name : 'Unknown Product';
-        message += `<li>${productName} - Qty: ${item.quantity} (PKR ${item.price})</li>`;
-      });
-      message += `</ul><p>Total Amount: PKR ${order.totalAmount}</p>`;
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #f9f9f9;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: ${headerColor}; margin: 0;">ShopZone</h1>
+          </div>
+          <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h2 style="color: #333333; margin-top: 0; text-align: center;">${title}</h2>
+            <p style="color: #555555; font-size: 16px; line-height: 1.5; text-align: center;">${statusMessage}</p>
+            
+            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+              <p style="margin: 0; color: #333;"><strong>Order ID:</strong> #${order._id.toString().slice(-8).toUpperCase()}</p>
+              <p style="margin: 5px 0 0 0; color: #333;"><strong>Total Amount:</strong> PKR ${order.totalAmount.toLocaleString()}</p>
+            </div>
 
-      await sendEmail(user.email, `Order ${status.toUpperCase()} - ShopZone`, message);
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+              ${itemsHtml}
+            </table>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/order/${order._id}" style="display: inline-block; padding: 12px 25px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: ${headerColor}; border-radius: 5px; text-decoration: none;">Track Order</a>
+            </div>
+          </div>
+          <div style="text-align: center; margin-top: 20px; color: #999999; font-size: 12px;">
+            <p>&copy; 2026 ShopZone. All rights reserved.</p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail(user.email, `Order ${status.toUpperCase()} - ShopZone`, emailHtml);
 
       const { createNotification } = require('../utils/notificationHelper');
       await createNotification({

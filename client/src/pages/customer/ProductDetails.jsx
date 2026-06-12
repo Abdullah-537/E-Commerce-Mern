@@ -225,7 +225,7 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="pt-5 pb-9">
+    <div className="pt-5 pb-9 bg-body flex-1">
       {/* Product Hero Section */}
       <section className="py-0">
         <div className="container-small">

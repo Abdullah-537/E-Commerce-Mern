@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../store/api/baseApi'
+import { getAvatarColor } from '../../utils/avatarHelper'
 import { toast } from 'react-toastify'
 
 export default function Vendors() {
@@ -61,144 +62,182 @@ export default function Vendors() {
   const statusColors = { approved: 'success', pending: 'warning', rejected: 'danger', banned: 'danger' }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb mb-1">
-              <li className="breadcrumb-item"><Link to="/admin">Admin</Link></li>
-              <li className="breadcrumb-item active">Vendors</li>
-            </ol>
-          </nav>
-          <h3 className="text-body-emphasis mb-0">Vendors</h3>
+    <div className="pb-5">
+      {/* Page Header */}
+      <div className="mb-4">
+        <nav aria-label="breadcrumb">
+          <ol className="breadcrumb mb-2" style={{ fontSize: '0.8rem' }}>
+            <li className="breadcrumb-item"><Link to="/admin" className="text-decoration-none">Admin</Link></li>
+            <li className="breadcrumb-item active" aria-current="page">Vendors</li>
+          </ol>
+        </nav>
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <h3 className="text-body-emphasis fw-bold mb-1">Vendor Management</h3>
+            <p className="text-muted fs-9 mb-0">Review, approve, and manage marketplace sellers and store operations.</p>
+          </div>
+          <button className="btn btn-phoenix-secondary btn-sm fw-bold rounded-pill">
+            <span className="fas fa-file-export me-2"></span>Export CSV
+          </button>
         </div>
       </div>
 
       {/* Status Tabs */}
-      <ul className="nav nav-underline mb-4 fs-9 border-bottom border-translucent">
+      <ul className="nav nav-underline mb-4 fs-9 border-bottom border-translucent gap-1">
         {[
-          { key: 'all', label: 'All', count: counts.all },
+          { key: 'all', label: 'All Vendors', count: counts.all },
           { key: 'approved', label: 'Approved', count: counts.approved },
-          { key: 'pending', label: 'Pending', count: counts.pending },
-          { key: 'banned', label: 'Banned', count: counts.banned },
+          { key: 'pending', label: 'Pending Approval', count: counts.pending },
+          { key: 'banned', label: 'Suspended', count: counts.banned },
         ].map(tab => (
           <li className="nav-item" key={tab.key}>
-            <button className={`nav-link ${filter === tab.key ? 'active fw-semibold' : 'text-body-tertiary'}`} onClick={() => setFilter(tab.key)}>
-              {tab.label} <span className="text-body-tertiary fw-semibold ms-1">({tab.count})</span>
+            <button
+              className={`nav-link pb-3 ${filter === tab.key ? 'active fw-bold' : 'text-body-tertiary'}`}
+              onClick={() => setFilter(tab.key)}
+              style={{ borderBottomWidth: '3px' }}
+            >
+              {tab.label} <span className="badge bg-light text-dark ms-1 fw-semibold">{tab.count}</span>
             </button>
           </li>
         ))}
       </ul>
 
-      {/* Search Bar */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div className="search-box" style={{ maxWidth: 300 }}>
-          <form className="position-relative">
-            <input className="form-control form-control-sm search-input bg-body-highlight border-translucent ps-6" type="search" placeholder="Search vendors..." value={search} onChange={e => setSearch(e.target.value)} />
-            <span className="fas fa-search search-box-icon"></span>
-          </form>
+      {/* Search & Info */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+        <div className="position-relative" style={{ minWidth: '300px' }}>
+          <span className="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></span>
+          <input
+            className="form-control form-control-sm ps-5 bg-white border-translucent"
+            type="search"
+            placeholder="Search by store name or owner..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ borderRadius: '8px' }}
+          />
         </div>
-        <span className="text-body-tertiary fs-10">{filtered.length} vendors</span>
+        <div className="d-flex align-items-center gap-2">
+          <span className="badge bg-light text-dark border border-translucent px-3 py-2 fw-semibold fs-10">
+            {filtered.length} of {vendors.length} vendors
+          </span>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="card border-translucent">
+      {/* Vendors Table */}
+      <div className="card border-translucent shadow-sm" style={{ borderRadius: '12px' }}>
         <div className="card-body p-0">
           {loading ? (
-            <div className="text-center py-7"><div className="spinner-border spinner-border-sm text-primary"></div></div>
+            <div className="text-center py-5">
+              <div className="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-7">
-              <span className="fas fa-store fs-3 text-body-quaternary d-block mb-3"></span>
-              <h5 className="text-body-tertiary">No vendors found</h5>
+            <div className="text-center py-5">
+              <span className="fas fa-store fs-3 text-muted d-block mb-3"></span>
+              <h5 className="text-muted fw-semibold">No vendors found</h5>
+              <p className="text-muted fs-10 mb-0">Try adjusting your filters or search terms.</p>
             </div>
           ) : (
-            <div className="table-responsive scrollbar">
-              <table className="table table-hover table-sm fs-9 mb-0">
-                <thead>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                <thead className="table-light">
                   <tr>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 ps-3">Store</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Owner</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11">Email</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Commission</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end">Earnings</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-center">Status</th>
-                    <th className="sort align-middle text-uppercase text-body-tertiary fw-bold fs-11 text-end pe-3">Actions</th>
+                    <th className="ps-4 py-3 text-muted text-uppercase fw-bold fs-11">Store Details</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11">Owner Info</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '120px' }}>Commission</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-end" style={{ width: '140px' }}>Total Earnings</th>
+                    <th className="py-3 text-muted text-uppercase fw-bold fs-11 text-center" style={{ width: '120px' }}>Status</th>
+                    <th className="pe-4 py-3 text-end" style={{ width: '160px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(v => (
                     <React.Fragment key={v._id}>
-                    <tr>
-                      <td className="align-middle ps-3">
-                        <Link to={`/admin/vendors/${v._id}`} className="d-flex align-items-center gap-2 text-decoration-none">
-                          <div className="avatar avatar-s">
-                            {v.logo ? (
-                              <img className="rounded-circle" src={v.logo} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} />
-                            ) : (
-                              <div className="avatar-name rounded-circle bg-success-subtle text-success">
-                                <span className="fs-10">{v.businessName?.charAt(0).toUpperCase()}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <span className="fw-semibold text-body-emphasis d-block">{v.businessName}</span>
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="align-middle text-body-emphasis">{v.userId?.name || '—'}</td>
-                      <td className="align-middle text-body-tertiary">{v.businessEmail || v.userId?.email || '—'}</td>
-                      <td className="align-middle text-center fw-semibold text-body-emphasis">{v.commissionRate || 10}%</td>
-                      <td className="align-middle text-end fw-bold text-body-emphasis">PKR {(v.totalEarnings || 0).toLocaleString()}</td>
-                      <td className="align-middle text-center">
-                        <span className={`badge badge-phoenix badge-phoenix-${statusColors[v.status] || 'secondary'} fs-10`}>{v.status}</span>
-                      </td>
-                      <td className="align-middle text-end pe-3">
-                        <div className="d-flex gap-1 justify-content-end">
-                          {v.status === 'pending' && (
-                            <>
-                              <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => updateStatus(v._id, 'approved')} title="Approve">
-                                <span className="fas fa-check"></span>
-                              </button>
-                              <button className="btn btn-phoenix-danger btn-sm px-2 py-0 fs-10" onClick={() => setRejectingVendorId(v._id)} title="Reject">
-                                <span className="fas fa-times"></span>
-                              </button>
-                            </>
-                          )}
-                          {v.status === 'approved' && (
-                            <button className="btn btn-phoenix-danger btn-sm px-2 py-0 fs-10" onClick={() => updateStatus(v._id, 'banned')} title="Ban">
-                              <span className="fas fa-ban"></span>
-                            </button>
-                          )}
-                          {v.status === 'banned' && (
-                            <button className="btn btn-phoenix-success btn-sm px-2 py-0 fs-10" onClick={() => updateStatus(v._id, 'approved')} title="Unban">
-                              <span className="fas fa-undo"></span>
-                            </button>
-                          )}
-                          <Link to={`/admin/vendors/${v._id}`} className="btn btn-phoenix-secondary btn-sm px-2 py-0 fs-10" title="View">
-                            <span className="fas fa-eye"></span>
+                      <tr>
+                        <td className="ps-4">
+                          <Link to={`/admin/vendors/${v._id}`} className="d-flex align-items-center gap-3 text-decoration-none">
+                            <div className="avatar avatar-m overflow-hidden">
+                              {v.logo ? (
+                                <img className="rounded-circle border border-translucent shadow-sm w-100 h-100" src={v.logo} alt="" style={{ objectFit: 'cover' }} />
+                              ) : (
+                                <div className={`avatar-name rounded-circle bg-${getAvatarColor(v.businessName)}-subtle text-${getAvatarColor(v.businessName)} fw-bold w-100 h-100 d-flex align-items-center justify-content-center`}>
+                                  <span>{v.businessName?.charAt(0).toUpperCase() || 'V'}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <span className="fw-semibold text-body-emphasis d-block mb-1">{v.businessName}</span>
+                              <span className="text-muted fs-10">{v.slug || ''}</span>
+                            </div>
                           </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    {rejectingVendorId === v._id && (
-                      <tr key={`reject-${v._id}`}>
-                        <td colSpan={7} className="p-3 bg-light rounded border border-translucent">
-                          <div className="d-flex align-items-center gap-2">
-                            <input 
-                              type="text" 
-                              className="form-control form-control-sm" 
-                              placeholder="Reason for rejection (sent to vendor via email)" 
-                              value={rejectReason} 
-                              onChange={(e) => setRejectReason(e.target.value)}
-                              disabled={submitting}
-                            />
-                            <button className="btn btn-sm btn-secondary" onClick={() => { setRejectingVendorId(null); setRejectReason(''); }} disabled={submitting}>Cancel</button>
-                            <button className="btn btn-sm btn-danger" onClick={() => handleReject(v._id)} disabled={submitting}>{submitting ? 'Rejecting...' : 'Reject'}</button>
+                        </td>
+                        <td>
+                          <div>
+                            <span className="fw-semibold text-body-emphasis d-block mb-1">{v.userId?.name || '—'}</span>
+                            <span className="text-muted fs-10 d-flex align-items-center gap-1">
+                              <span className="fas fa-envelope"></span> {v.businessEmail || v.userId?.email || '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          <span className="badge badge-phoenix badge-phoenix-info px-2 py-1 fw-bold fs-10">{v.commissionRate || 10}%</span>
+                        </td>
+                        <td className="text-end fw-bold text-success">PKR {(v.totalEarnings || 0).toLocaleString()}</td>
+                        <td className="text-center">
+                          <span className={`badge badge-phoenix badge-phoenix-${statusColors[v.status] || 'secondary'} px-2 py-1 fw-bold fs-10`}>
+                            {v.status === 'banned' ? 'Suspended' : v.status}
+                          </span>
+                        </td>
+                        <td className="text-end pe-4">
+                          <div className="d-flex gap-2 justify-content-end">
+                            {v.status === 'pending' && (
+                              <>
+                                <button className="btn btn-phoenix-success btn-xs rounded-circle p-2" onClick={() => updateStatus(v._id, 'approved')} title="Approve">
+                                  <span className="fas fa-check"></span>
+                                </button>
+                                <button className="btn btn-phoenix-danger btn-xs rounded-circle p-2" onClick={() => setRejectingVendorId(v._id)} title="Reject">
+                                  <span className="fas fa-times"></span>
+                                </button>
+                              </>
+                            )}
+                            {v.status === 'approved' && (
+                              <button className="btn btn-phoenix-danger btn-xs rounded-circle p-2" onClick={() => updateStatus(v._id, 'banned')} title="Suspend Store">
+                                <span className="fas fa-ban"></span>
+                              </button>
+                            )}
+                            {v.status === 'banned' && (
+                              <button className="btn btn-phoenix-success btn-xs rounded-circle p-2" onClick={() => updateStatus(v._id, 'approved')} title="Reinstate Store">
+                                <span className="fas fa-undo"></span>
+                              </button>
+                            )}
+                            <Link to={`/admin/vendors/${v._id}`} className="btn btn-phoenix-primary btn-xs rounded-circle p-2" title="View Store">
+                              <span className="fas fa-eye"></span>
+                            </Link>
                           </div>
                         </td>
                       </tr>
-                    )}
+                      {rejectingVendorId === v._id && (
+                        <tr key={`reject-${v._id}`} className="bg-body-highlight">
+                          <td colSpan={6} className="px-4 py-3 border-bottom border-translucent">
+                            <div className="d-flex align-items-center gap-3">
+                              <span className="fas fa-exclamation-circle text-danger fs-8"></span>
+                              <div className="flex-grow-1">
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm bg-white border-translucent"
+                                  placeholder="Provide a detailed reason for rejecting this vendor application (will be emailed)..."
+                                  value={rejectReason}
+                                  onChange={(e) => setRejectReason(e.target.value)}
+                                  disabled={submitting}
+                                  style={{ borderRadius: '6px' }}
+                                />
+                              </div>
+                              <button className="btn btn-sm btn-phoenix-secondary fw-bold px-3" onClick={() => { setRejectingVendorId(null); setRejectReason(''); }} disabled={submitting}>Cancel</button>
+                              <button className="btn btn-sm btn-danger fw-bold px-4" onClick={() => handleReject(v._id)} disabled={submitting}>
+                                {submitting ? <span className="spinner-border spinner-border-sm"></span> : 'Confirm Rejection'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </React.Fragment>
                   ))}
                 </tbody>
@@ -206,16 +245,6 @@ export default function Vendors() {
             </div>
           )}
         </div>
-        {filtered.length > 0 && (
-          <div className="card-footer border-top border-translucent d-flex justify-content-between align-items-center">
-            <p className="mb-0 text-body-tertiary fs-10">Showing {filtered.length} of {vendors.length} vendors</p>
-            <nav><ul className="pagination pagination-sm mb-0">
-              <li className="page-item disabled"><button className="page-link"><span className="fas fa-chevron-left"></span></button></li>
-              <li className="page-item active"><button className="page-link">1</button></li>
-              <li className="page-item disabled"><button className="page-link"><span className="fas fa-chevron-right"></span></button></li>
-            </ul></nav>
-          </div>
-        )}
       </div>
     </div>
   )
