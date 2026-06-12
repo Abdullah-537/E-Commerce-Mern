@@ -349,90 +349,104 @@ exports.verifyOTP = async (req, res, next) => {
       </div>
     `;
 
-    // Send email in background
-    sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml)
-      .catch(err => console.error('Failed to send confirmation email:', err));
+    // Send customer confirmation email (await so Render doesn't kill it)
+    try {
+      await sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml);
+      console.log('[ORDER] Customer email sent to:', user.email);
+    } catch (emailErr) {
+      console.error('[ORDER] Customer email FAILED:', emailErr.message);
+    }
 
     const { createNotification } = require('../utils/notificationHelper');
-    // Notify customer in background
-    createNotification({
-      userId: customerId,
-      title: 'Order Confirmed',
-      message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been confirmed.`,
-      type: 'order',
-      link: `/orders/${order._id}/track`
-    }).catch(console.error);
+    try {
+      await createNotification({
+        userId: customerId,
+        title: 'Order Confirmed',
+        message: `Your order #${order._id.toString().slice(-8).toUpperCase()} has been confirmed.`,
+        type: 'order',
+        link: `/orders/${order._id}/track`
+      });
+    } catch (e) { console.error('[ORDER] Notification failed:', e.message); }
 
-    // Notify vendors in background
+    // Notify vendors in background (await so Render doesn't kill it)
     const Vendor = require('../models/Vendor');
     const vendorIds = [...new Set(order.items.map(i => i.vendorId.toString()))];
     for (const vId of vendorIds) {
-      Vendor.findById(vId).populate('userId', 'email name').then(vendorRecord => {
-        if (vendorRecord) {
-          createNotification({
+      try {
+        const vendorRecord = await Vendor.findById(vId).populate('userId', 'email name');
+        if (!vendorRecord) continue;
+
+        try {
+          await createNotification({
             userId: vendorRecord.userId._id || vendorRecord.userId,
             title: 'New Order Received',
             message: `You have received a new order #${order._id.toString().slice(-8).toUpperCase()}.`,
             type: 'order',
             link: `/vendor/orders/${order._id}`
-          }).catch(console.error);
-
-          // Build vendor specific email items
-          const vendorItems = order.items.filter(i => i.vendorId.toString() === vId);
-          let vendorItemsHtml = '';
-          let vendorEarningTotal = 0;
-          
-          vendorItems.forEach(item => {
-            const imgUrl = item.productImage || 'https://via.placeholder.com/60';
-            vendorEarningTotal += item.vendorEarning;
-            vendorItemsHtml += `
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
-                  <img src="${imgUrl}" alt="${item.productName}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" />
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
-                  <strong>${item.productName}</strong><br/>
-                  <span style="color: #888;">Qty: ${item.quantity}</span>
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #eeeeee; text-align: right;">
-                  <strong>PKR ${(item.vendorEarning).toLocaleString()}</strong>
-                </td>
-              </tr>
-            `;
           });
+        } catch (notifErr) { console.error('[ORDER] Vendor notification failed:', notifErr.message); }
 
-          const vendorEmailHtml = `
-            <div style="font-family: 'Inter', Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 0; background-color: #f4f7f6;">
-              <div style="background-color: #1a202c; padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">New Order Received! 🛍️</h1>
+        // Build vendor specific email items
+        const vendorItems = order.items.filter(i => i.vendorId.toString() === vId);
+        let vendorItemsHtml = '';
+        let vendorEarningTotal = 0;
+        
+        vendorItems.forEach(item => {
+          const imgUrl = item.productImage || 'https://via.placeholder.com/60';
+          vendorEarningTotal += item.vendorEarning;
+          vendorItemsHtml += `
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+                <img src="${imgUrl}" alt="${item.productName}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" />
+              </td>
+              <td style="padding: 10px; border-bottom: 1px solid #eeeeee;">
+                <strong>${item.productName}</strong><br/>
+                <span style="color: #888;">Qty: ${item.quantity}</span>
+              </td>
+              <td style="padding: 10px; border-bottom: 1px solid #eeeeee; text-align: right;">
+                <strong>PKR ${(item.vendorEarning).toLocaleString()}</strong>
+              </td>
+            </tr>
+          `;
+        });
+
+        const vendorEmailHtml = `
+          <div style="font-family: 'Inter', Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 0; background-color: #f4f7f6;">
+            <div style="background-color: #1a202c; padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">New Order Received! 🛍️</h1>
+            </div>
+            <div style="background-color: #ffffff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+              <p style="color: #4a5568; font-size: 16px;">Hello <strong>${vendorRecord.businessName}</strong>,</p>
+              <p style="color: #4a5568; font-size: 16px;">You just received a new order on ShopZone.</p>
+              
+              <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); border-radius: 8px; border-left: 4px solid #38a169;">
+                <p style="margin: 0 0 10px 0; color: #276749; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;"><strong>Order ID: #${order._id.toString().slice(-8).toUpperCase()}</strong></p>
+                <p style="margin: 0; color: #2d3748; font-size: 18px;">Your Earnings: <strong>PKR ${vendorEarningTotal.toLocaleString()}</strong></p>
               </div>
-              <div style="background-color: #ffffff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <p style="color: #4a5568; font-size: 16px;">Hello <strong>${vendorRecord.businessName}</strong>,</p>
-                <p style="color: #4a5568; font-size: 16px;">You just received a new order on ShopZone.</p>
-                
-                <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); border-radius: 8px; border-left: 4px solid #38a169;">
-                  <p style="margin: 0 0 10px 0; color: #276749; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;"><strong>Order ID: #${order._id.toString().slice(-8).toUpperCase()}</strong></p>
-                  <p style="margin: 0; color: #2d3748; font-size: 18px;">Your Earnings: <strong>PKR ${vendorEarningTotal.toLocaleString()}</strong></p>
-                </div>
 
-                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                  ${vendorItemsHtml}
-                </table>
-                
-                <div style="text-align: center; margin-top: 40px;">
-                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/vendor/orders/${order._id}" style="display: inline-block; padding: 14px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #38a169; border-radius: 6px; text-decoration: none;">Process Order</a>
-                </div>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                ${vendorItemsHtml}
+              </table>
+              
+              <div style="text-align: center; margin-top: 40px;">
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/vendor/orders/${order._id}" style="display: inline-block; padding: 14px 30px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #38a169; border-radius: 6px; text-decoration: none;">Process Order</a>
               </div>
             </div>
-          `;
+          </div>
+        `;
 
-          const targetEmail = vendorRecord.businessEmail || vendorRecord.userId?.email;
-          if (targetEmail) {
-            sendEmail(targetEmail, `New Order Received #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, vendorEmailHtml)
-              .catch(err => console.error('Failed to send vendor email:', err));
+        const targetEmail = vendorRecord.businessEmail || vendorRecord.userId?.email;
+        if (targetEmail) {
+          try {
+            await sendEmail(targetEmail, `New Order Received #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, vendorEmailHtml);
+            console.log('[ORDER] Vendor email sent to:', targetEmail);
+          } catch (vendorEmailErr) {
+            console.error('[ORDER] Vendor email FAILED:', vendorEmailErr.message);
           }
         }
-      }).catch(console.error);
+      } catch (err) {
+        console.error('[ORDER] Vendor processing failed:', err.message);
+      }
     }
 
     res.status(200).json({ success: true, data: { orderId: order._id }, message: 'Order confirmed!' });
