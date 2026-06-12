@@ -345,7 +345,11 @@ exports.verifyOTP = async (req, res, next) => {
       </div>
     `;
 
-    await sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml);
+    try {
+      await sendEmail(user.email, `Order Confirmed #${order._id.toString().slice(-8).toUpperCase()} - ShopZone`, emailHtml);
+    } catch (err) {
+      console.error('Failed to send confirmation email:', err);
+    }
 
     const { createNotification } = require('../utils/notificationHelper');
     // Notify customer
@@ -645,7 +649,11 @@ exports.updateStatus = async (req, res, next) => {
         </div>
       `;
 
-      await sendEmail(user.email, `Order ${status.toUpperCase()} - ShopZone`, emailHtml);
+      try {
+        await sendEmail(user.email, `Order ${status.toUpperCase()} - ShopZone`, emailHtml);
+      } catch (err) {
+        console.error('Failed to send status update email:', err);
+      }
 
       const { createNotification } = require('../utils/notificationHelper');
       await createNotification({
