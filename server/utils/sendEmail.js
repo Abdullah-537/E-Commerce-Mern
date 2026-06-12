@@ -13,23 +13,23 @@ const getTransporter = () => {
 
   if (!emailUser || !emailPass) return null;
 
-  // Use explicit SMTP config instead of service shorthand — more reliable on cloud
+  // Use explicit SMTP config. Force IPv4 (family: 4) because Google often drops IPv6 connections from cloud servers, causing ETIMEDOUT.
   transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // use TLS directly on 465
+    port: 587,
+    secure: false, // use STARTTLS
+    requireTLS: true,
     auth: {
       user: emailUser,
       pass: emailPass,
     },
     tls: {
-      rejectUnauthorized: false, // allow self-signed certs on cloud
+      rejectUnauthorized: false,
     },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-    pool: true,
-    maxConnections: 3,
+    family: 4, // Force IPv4
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
   return transporter;
